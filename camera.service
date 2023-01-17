@@ -1,0 +1,9 @@
+[Unit]
+Description=Camera Utilty
+
+[Service]
+ExecStart=/bin/python3 /home/pi/pi_camera/screentest.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
