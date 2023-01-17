@@ -2,12 +2,15 @@ import LCD_1in44
 import LCD_Config
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont, ImageColor
+from io import BytesIO
 
 import time
 import picamera as pc
 
 # button mapping
 shutter_pin = 13
+backlight_pin = 24
+magnify_pin = 21
 
 # display with hardware SPI
 disp = LCD_1in44.LCD()
@@ -24,36 +27,58 @@ draw = ImageDraw.Draw(ui)
 GPIO.setmode(GPIO.BCM)
 #GPIO.cleanup()
 GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
+GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 def main(ui, cam):
 	draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
 	disp.LCD_ShowImage(ui, 0, 0)
 
-	cam.crop = (0,0,1,1)
-
 	ui.rotate(180)
+
+	magnify_flag = False
 
 	print("Starting the program loop")
 	while True:
 		# capture image
 		if GPIO.input(shutter_pin) == 0:
+			# blank the backlight to visualise that the image was taken
+			GPIO.output(backlight_pin, 0)
+
 #			cam.resolution = (4056,3040)
 			cam.resolution = (2028,1520)
 			cam.rotation = 0
+			cam.crop = (0,0,1,1)
+
 			cam.capture( "/home/pi/DCIM/%s.jpg" % str(int(time.time()*1000)) )
 			print("image captured:", int(time.time()*1000))
 
-			# display the ui to show that the image was taken
-			disp.LCD_ShowImage(ui, 0, 0)
+			GPIO.output(backlight_pin, 1)
 
 		# show preview image on screen
 		else:
 			cam.resolution = (128,128)
 			cam.rotation = 180
-			cam.capture("/home/pi/pi_camera/preview.jpg")
 
-			preview = Image.open("preview.jpg")
+			stream = BytesIO()
+			cam.capture(stream, format="jpeg")
+#			stream.seek(0)
+			preview = Image.open(stream)
+
+			if magnify_flag:
+				magnify_icon = ImageDraw.Draw(preview)
+				magnify_icon.rectangle( (10,20,20,30), fill=0xffffff )
+				magnify_icon.rectangle( (13,10,17,20), fill=0xffffff )
+
 			disp.LCD_ShowImage(preview, 0, 0)
+
+		if GPIO.input(magnify_pin) == 0:
+			magnify_flag = not magnify_flag
+
+			if magnify_flag:
+				cam.crop = (0.35,0.35,0.3,0.3)
+			else:
+				cam.crop = (0,0,1,1)
 
 if __name__ == "__main__":
 	try:
@@ -61,6 +86,8 @@ if __name__ == "__main__":
 		disp.LCD_ShowImage(ui, 0, 0)
 
 		cam = pc.PiCamera()
+		cam.crop = (0,0,1,1) #reset camera crop
+		cam.start_preview() #preview to adjust exposure to available light
 
 		main(ui, cam)
 
@@ -68,6 +95,7 @@ if __name__ == "__main__":
 #		print("ERROR")
 
 	finally:
+		cam.stop_preview()
 		cam.close()
 
 		GPIO.cleanup()
