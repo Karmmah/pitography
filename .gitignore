@@ -1,2 +1,7 @@
 key_demo.py
 
+*.jpg
+*.swp
+
+__pycache__/
+

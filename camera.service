@@ -2,7 +2,7 @@
 Description=Camera Utilty
 
 [Service]
-ExecStart=/bin/python3 /home/pi/pi_camera/screentest.py
+ExecStart=/bin/python3 /home/pi/pi_camera/simple_capture.py
 Restart=on-failure
 
 [Install]

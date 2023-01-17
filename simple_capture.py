@@ -1,128 +1,80 @@
-import tkinter, time
+import LCD_1in44
+import LCD_Config
+import RPi.GPIO as GPIO
+from PIL import Image, ImageDraw, ImageFont, ImageColor
 
-#parameters
-pwidth = 300 #width of the program window
-pheight = 260
+import time
+import picamera as pc
 
-def capture():
-	#camera.resolution = (rwidth,rheight)
-	camera.crop = (0,0,1,1)
-	camera.stop_preview()
-	camera.capture('/home/pi/Pictures/picamera/%s.jpg' % str(int(time.time())))
+# button mapping
+shutter_pin = 13
 
-global preview, magnification
-preview, magnification = False, False
+# display with hardware SPI
+disp = LCD_1in44.LCD()
+Lcd_ScanDir = LCD_1in44.SCAN_DIR_DFT
+disp.LCD_Init(Lcd_ScanDir)
+disp.LCD_Clear()
 
-def preview():
-	global preview
-	if preview:
-		camera.stop_preview()
-	else:
-		camera.start_preview(fullscreen=True) #False, window=(0,0,300,300))
-	preview = not preview #switch the preview
+# draw initial image
+ui_width, ui_height = 128, 128
+ui = Image.new("RGB", (ui_width,ui_height))
+draw = ImageDraw.Draw(ui)
 
-def change_magnification():
-	global magnification
-	if magnification:
-		camera.crop = (0,0,1,1)
-	else:
-		camera.crop = (0.4,0.4,0.2,0.2)
-	magnification = not magnification #switch the magnification
+# GPIO init
+GPIO.setmode(GPIO.BCM)
+#GPIO.cleanup()
+GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
-def main():
-#	with open("/home/pi/Desktop/launch.txt", "a") as f:
-#		f.write(str(int(time.time())))
-	root = tkinter.Tk()
-	root.title('simple capture')
-	root.geometry('%sx%s' %(pwidth, pheight))
-	root.configure(bg='white')
-	font1 = ('Eras Bold ITC', 24)
+def main(ui, cam):
+	draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
+	disp.LCD_ShowImage(ui, 0, 0)
 
-	l_test = tkinter.Label(root, text="Test", font=font1)
+	cam.crop = (0,0,1,1)
 
-	l_test.pack()
+	ui.rotate(180)
 
-	from picamera import PiCamera
-	from gpiozero import Button
-	try:
+	print("Starting the program loop")
+	while True:
+		# capture image
+		if GPIO.input(shutter_pin) == 0:
+#			cam.resolution = (4056,3040)
+			cam.resolution = (2028,1520)
+			cam.rotation = 0
+			cam.capture( "/home/pi/DCIM/%s.jpg" % str(int(time.time()*1000)) )
+			print("image captured:", int(time.time()*1000))
 
-		down = Button(5)
-		up = Button(26)
-		left = Button(6)
-		right = Button(19)
-		center = Button(13)
-		key1 = Button(21)
-		key2 = Button(20)
-		key3 = Button(16)
+			# display the ui to show that the image was taken
+			disp.LCD_ShowImage(ui, 0, 0)
 
-		key3.when_pressed = preview
-		key1.when_pressed = change_magnification
-		center.when_pressed = capture
+		# show preview image on screen
+		else:
+			cam.resolution = (128,128)
+			cam.rotation = 180
+			cam.capture("/home/pi/pi_camera/preview.jpg")
 
-		camera = PiCamera()
-		camera.crop = (0,0,1,1) #reset crop at start
-#		camera.resolution = (rwidth,rheight) #reset resolution at start
-
-	except Exception as e:
-		with open("/home/pi/Desktop/errors.txt", "a") as f:
-			f.write("error")
-			f.write(e)
-		l_test['text'] = "error" #str(e)
-
-	try:
-		root.mainloop()
-	finally:
-		#camera.stop_preview()
-		pass
-#		camera.close()
+			preview = Image.open("preview.jpg")
+			disp.LCD_ShowImage(preview, 0, 0)
 
 if __name__ == "__main__":
-	main()
+	try:
+		draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
+		disp.LCD_ShowImage(ui, 0, 0)
 
-#l_iso = tkinter.Label(root, text='ISO', font=font1)
-#l_iso.place(anchor='nw', relx=0, rely=0)
-#l_iso_value = tkinter.Label(root, text=str(camera.iso), font=font1)
-#l_iso_value.place(anchor='ne', relx=1, rely=0)
-#try:
-#    l_expo = tkinter.Label(root, text='EXPOSURE', font=font1)
-#    l_expo.place(anchor='w', relx=1, rely=0.3)
-#    l_expo_value = tkinter.Label(root, text=str(camera.exposure), font=font1)
-#    l_expo_value.place(anchor='e', relx=1, rely=0.3)
+		cam = pc.PiCamera()
 
-########################
+		main(ui, cam)
 
+#	except:
+#		print("ERROR")
 
+	finally:
+		cam.close()
 
-#max resolution: 4056x3040
-rwidth = 4056 #2028 #resolution width
-rheight = 3040 #1520
+		GPIO.cleanup()
+		print(" -GPIO.cleanup()")
 
-#def get_gain(): #get analog gain in decimal number instead of fraction
-#    gain = camera.analog_gain
-#    if len(input) == 1:
-#        pass
-#    else:
-#        content = list(map(int,input.split('/')))
-#        gain = round(content[0]/content[1],2)
-#    return gain
-
-#def __info__():
-#    l_iso['text'] = 'iso:\n'+str(camera.iso)
-#    l_expo['text'] = 'exposure:\n'+str(camera.exposure_speed)
-#    #try:
-#    #    l_gain['text'] = 'gain:\n'+str(get_gain())
-#    #except Exception as e:
-#    #    l_error = tkinter.Label(root, text=e, font=('Arial',12))
-#    #    l_error.place(relx=0,rely=0)
-#    #l_bright['text'] = 'brightness:\n'+str(camera.brightness)
-
-
-
-
-
-#l_gain = tkinter.Label(root, text='gain:\n'+str(camera.analog_gain), font=font1)
-#l_gain.place(anchor='sw',relx=0,rely=1)
-#l_bright = tkinter.Label(root, text='brightness:\n'+str(camera.brightness), font=font1)
-#l_bright.place(anchor='se',relx=1,rely=1)
-
-
+		print("\n####################")
+		print("#                  #")
+		print("#  Program closed  #")
+		print("#                  #")
+		print("####################")
