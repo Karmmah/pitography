@@ -1,8 +1,8 @@
 # pi_camera
 Building a camera for photography with the Raspberry Pi HQ Camera module.
 
-0. Install RaspberryOS lite 64bit
-1. Enable SPI-Interface on Raspberry Pi, then reboot
+0. Install RaspberryOS lite 32bit
+1. Enable SPI-Interface and Camera Interface on Raspberry Pi, then reboot
 ```
 sudo raspi-config
 ```
@@ -23,10 +23,10 @@ gpio -v
 ```
 4. Install python libraries
 ```
-sudo apt-get update
-sudo apt-get install python3-pip
-sudo apt-get install python3-pil
-sudo apt-get install python3-numpy
+sudo apt update
+sudo apt install python3-pip
+sudo apt install python3-pil
+sudo apt install python3-numpy
 sudo pip3 install RPi.GPIO
 sudo pip3 install spidev
 sudo pip3 install picamera
