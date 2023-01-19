@@ -40,7 +40,11 @@ sudo pip3 install picamera
 cd ~/pi_camera
 cp camera.service /etc/systemd/system/camera.service
 ```
-6. Optional: Download code samples
+6. Create folder to save images to
+```
+mkdir ~/DCIM
+```
+7. Optional: Download code samples
 ```
 cd ~
 sudo apt install p7zip-full -y
