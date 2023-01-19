@@ -2,8 +2,9 @@
 Description=Camera Utilty
 
 [Service]
-ExecStart=/bin/python3 /home/pi/pi_camera/simple_capture.py
+ExecStart=/bin/sh /home/pi/pi_camera/start.sh
 Restart=on-failure
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target

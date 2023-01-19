@@ -3,6 +3,8 @@ import LCD_Config
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 
+import time
+
 key1_pin = 21
 key2_pin = 20
 key3_pin = 16
@@ -62,13 +64,16 @@ def main(image):
 
 	image = image.rotate(180)
 
-	while True:
-		if GPIO.input(backlight_pin) == 0:
-			GPIO.output(24, 0)
-		else:
-			GPIO.output(24, 1)
+#	while True:
+#		if GPIO.input(backlight_pin) == 0:
+#			GPIO.output(24, 0)
+#		else:
+#			GPIO.output(24, 1)
 
-		disp.LCD_ShowImage(image, 0, 0)
+#		disp.LCD_ShowImage(image, 0, 0)
+
+	disp.LCD_ShowImage(image, 0, 0)
+	time.sleep(2)
 
 try:
 	if __name__ == "__main__":

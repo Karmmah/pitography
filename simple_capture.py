@@ -25,7 +25,6 @@ draw = ImageDraw.Draw(ui)
 
 # GPIO init
 GPIO.setmode(GPIO.BCM)
-#GPIO.cleanup()
 GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -38,7 +37,7 @@ def main(ui, cam):
 
 	magnify_flag = False
 
-	print("Starting the program loop")
+	print("Running the program loop")
 	while True:
 		# capture image
 		if GPIO.input(shutter_pin) == 0:
@@ -49,9 +48,10 @@ def main(ui, cam):
 			cam.resolution = (4056,2028)
 #			cam.resolution = (2028,1520)
 			cam.rotation = 0
-			cam.crop = (0,0,1,1)
+			cam.zoom = (0,0,1,1)
 
-			cam.capture( "/home/pi/DCIM/%s.jpg" % str(int(time.time()*1000)) )
+#			cam.capture( "/home/pi/DCIM/%s.jpg" % str(int(time.time()*1000)) )
+			cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000) )
 			print("image captured:", int(time.time()*1000))
 
 			GPIO.output(backlight_pin, 1)
@@ -63,7 +63,7 @@ def main(ui, cam):
 
 			stream = BytesIO()
 			cam.capture(stream, format="jpeg")
-#			stream.seek(0)
+			stream.seek(0)
 			preview = Image.open(stream)
 
 			if magnify_flag:
@@ -73,13 +73,14 @@ def main(ui, cam):
 
 			disp.LCD_ShowImage(preview, 0, 0)
 
+		# check if maginfy button is pressed
 		if GPIO.input(magnify_pin) == 0:
 			magnify_flag = not magnify_flag
 
 			if magnify_flag:
-				cam.crop = (0.35,0.35,0.3,0.3)
+				cam.zoom = (0.35,0.35,0.3,0.3)
 			else:
-				cam.crop = (0,0,1,1)
+				cam.zoom = (0,0,1,1)
 
 if __name__ == "__main__":
 	try:
@@ -87,7 +88,8 @@ if __name__ == "__main__":
 		disp.LCD_ShowImage(ui, 0, 0)
 
 		cam = pc.PiCamera()
-		cam.crop = (0,0,1,1) #reset camera crop
+		time.sleep(2)
+		cam.zoom = (0,0,1,1) #reset camera crop
 		cam.start_preview() #preview to adjust exposure to available light
 
 		main(ui, cam)
