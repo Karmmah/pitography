@@ -46,7 +46,8 @@ def main(ui, cam):
 			GPIO.output(backlight_pin, 0)
 
 #			cam.resolution = (4056,3040)
-			cam.resolution = (2028,1520)
+			cam.resolution = (4056,2028)
+#			cam.resolution = (2028,1520)
 			cam.rotation = 0
 			cam.crop = (0,0,1,1)
 
