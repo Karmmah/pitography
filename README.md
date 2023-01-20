@@ -35,10 +35,11 @@ sudo pip3 install RPi.GPIO
 sudo pip3 install spidev
 sudo pip3 install picamera
 ```
-5. Copy .service file to enable autostart at Pi startup
+5. Add Camera service to systemctl
 ```
 cd ~/pi_camera
-cp camera.service /etc/systemd/system/camera.service
+sudo cp camera.service /etc/systemd/system/camera.service
+sudo systemctl enable camera
 ```
 6. Create folder to save images to
 ```
