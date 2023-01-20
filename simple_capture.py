@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 from io import BytesIO
 
-import time
+import time, numpy
 import picamera as pc
 
 # button mapping
@@ -33,38 +33,58 @@ def main(ui, cam):
 	draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
 	disp.LCD_ShowImage(ui, 0, 0)
 
-	ui.rotate(180)
+#	(4056,3040) #max resolution, not enough resources for that
+#	(4056,2028) #2:1 with max width
+#	(2028,1520) #half resolution
+	capture_resolution = (4056,2028)
+#	capture_resolution = (4032,2016)
+	preview_resolution = (ui_width,ui_height)
+	preview_zoom = ()
+	magnify_zoom = (0.35,0.35,0.3,0.3)
 
 	magnify_flag = False
+	cam.resolution = preview_resolution
+	cam.rotation = 180 #rotate for preview
 
 	print("Running the program loop")
 	while True:
 		# capture image
 		if GPIO.input(shutter_pin) == 0:
-			# blank the backlight to visualise that the image was taken
+			# blank the backlight to visualise that the image is being taken
 			GPIO.output(backlight_pin, 0)
 
-#			cam.resolution = (4056,3040)
-			cam.resolution = (4056,2028)
-#			cam.resolution = (2028,1520)
+			# set the capture resolution and reset crop
+			cam.resolution = capture_resolution
 			cam.rotation = 0
+			magnify_flag = False
 			cam.zoom = (0,0,1,1)
 
-#			cam.capture( "/home/pi/DCIM/%s.jpg" % str(int(time.time()*1000)) )
+			# capture the image
 			cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000) )
 			print("image captured:", int(time.time()*1000))
 
+			# display capture success message
+			draw.rectangle( (0,0,ui_width,ui_height), fill=0 )
+			draw.text( (0,0), "Image saved" )
+			ui.rotate(180)
+			disp.LCD_ShowImage(ui, 0, 0)
+
+			# reset resolution to preview
+			cam.resolution = preview_resolution
+			cam.rotation = 180
+
+			# turn backlight back on
 			GPIO.output(backlight_pin, 1)
 
 		# show preview image on screen
 		else:
-			cam.resolution = (128,128)
-			cam.rotation = 180
-
-			stream = BytesIO()
-			cam.capture(stream, format="jpeg")
-			stream.seek(0)
-			preview = Image.open(stream)
+#			stream = BytesIO()
+			data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
+#			cam.capture(stream, format="jpeg")
+			cam.capture(data, "rgb")
+#			stream.seek(0)
+#			preview = Image.open(stream)
+			preview = Image.fromarray(data, "RGB")
 
 			if magnify_flag:
 				magnify_icon = ImageDraw.Draw(preview)
@@ -73,12 +93,12 @@ def main(ui, cam):
 
 			disp.LCD_ShowImage(preview, 0, 0)
 
-		# check if maginfy button is pressed
+		# change magnification
 		if GPIO.input(magnify_pin) == 0:
 			magnify_flag = not magnify_flag
 
 			if magnify_flag:
-				cam.zoom = (0.35,0.35,0.3,0.3)
+				cam.zoom = magnify_zoom
 			else:
 				cam.zoom = (0,0,1,1)
 
@@ -87,8 +107,8 @@ if __name__ == "__main__":
 		draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
 		disp.LCD_ShowImage(ui, 0, 0)
 
-		cam = pc.PiCamera()
-		time.sleep(2)
+		cam = pc.PiCamera(framerate=25)
+#		time.sleep(2)
 		cam.zoom = (0,0,1,1) #reset camera crop
 		cam.start_preview() #preview to adjust exposure to available light
 
