@@ -45,7 +45,12 @@ sudo systemctl enable camera
 ```
 mkdir ~/DCIM
 ```
-7. Optional: Download code samples
+7. Increase available GPU memory to enable highest resolution capture
+```
+# change value of gpu_mem to 256
+sudo nano /boot/config.txt
+```
+8. Optional: Download code samples
 ```
 cd ~
 sudo apt install p7zip-full -y
