@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageOps
 from io import BytesIO
 
-import time, numpy
+import time, numpy, subprocess
 import picamera as pc
 
 # button mapping
@@ -34,7 +34,8 @@ def main(ui, draw, cam):
 	disp.LCD_ShowImage(ui, 0, 0)
 
 #	(4056,3040) #max resolution, gpu_mem in /boot/config.txt needs to be changed to 256 to have enough resources for this resolution
-	capture_resolution = (4056,3040)
+#	capture_resolution = (4056,3040)
+	capture_resolution = (4032,3040)
 	preview_resolution = (ui_width,ui_height)
 
 	# fit preview to what will actually be captured at a given resolution
@@ -47,7 +48,7 @@ def main(ui, draw, cam):
 
 	magnify_zoom = (0.35,0.35,0.3,0.3)
 
-	cam.shutter_speed = 20000 #debug, set shutter speed to 1/50
+	min_shutter_speed = 20000 #minimal shutter speed 1/50 (20000 µs)
 
 	magnify_flag = False
 	cam.resolution = preview_resolution
@@ -55,6 +56,11 @@ def main(ui, draw, cam):
 
 	print("Running the program loop")
 	while True:
+		#check if current needed exposure speed calculated by the camera is lower than the minimum
+		if cam.exposure_speed > min_shutter_speed:
+#			print("too dark", cam.exposure_speed)
+			cam.shutter_speed = min_shutter_speed
+
 		# capture image
 		if GPIO.input(shutter_pin) == 0:
 			# blank the backlight to visualise that the image is being taken
@@ -67,6 +73,7 @@ def main(ui, draw, cam):
 			cam.zoom = (0,0,1,1)
 
 			# capture the image
+#			cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format="raw" )
 			cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000) )
 			print("image captured:", int(time.time()*1000))
 
@@ -102,15 +109,23 @@ def main(ui, draw, cam):
 
 			ov_draw = ImageDraw.Draw(overlay)
 
+			#draw magnifying glass symbol to overlay
 			if magnify_flag:
-				#draw magnifying glass symbol to overlay
-				ov_draw.ellipse( (100,10,110,20), fill=0xffffff )
-				ov_draw.line( (105,15,95,25), fill=0xffffff, width=3 )
+				ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
+				ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
+
+#			if subprocess.check_output("systemctl is-active file_server", text=True, shell=True) == "active\n":
+#				ov_draw.text( (30,100), text="fs running", fill=0x00ff00 )
+#			else:
+#				ov_draw.text( (30,100), text="fs not running", fill=0xff0000 )
+
+			ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
 
 			# add current camera info to preview
 			#properties of camera are saved as Fraction objects; need special handling
 			gain = cam.analog_gain.numerator / cam.analog_gain.denominator
 
+#from the pi camera guide
 #camera.brightness = 50 (0 to 100)
 #camera.sharpness = 0 (-100 to 100)
 #camera.contrast = 0 (-100 to 100)
@@ -121,16 +136,13 @@ def main(ui, draw, cam):
 #camera.meter_mode = 'average'
 #camera.awb_mode = 'auto'
 #camera.rotation = 0
-#camera.hflip = False
-#camera.vflip = False
 #camera.crop = (0.0, 0.0, 1.0, 1.0)
 
-			ov_draw.text( (3,20), "gain "+str(round(gain,1)), fill=0xffffff )
-			ov_draw.text( (3,30), "exp 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
-			ov_draw.text( (3,40), "shut 1/"+str(int(1000000/cam.shutter_speed)), fill=0xffffff )
-			ov_draw.text( (3,50), "iso "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
-#			ov_draw.text( (3,60), "bri "+str(cam.brightness), fill=0xffffff )
-#			ov_draw.text( (3,70), "sha "+str(cam.sharpness), fill=0xffffff )
+			ov_draw.text( (3,20), "g "+str(round(gain,1)), fill=0xffffff )
+			ov_draw.text( (3,30), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
+			ov_draw.text( (3,40), "s 1/"+(str(int(1000000/cam.shutter_speed)) if cam.shutter_speed > 0 else "0"), fill=0xffffff )
+			ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
+#			ov_draw.text( (3,60), "comp "+str(cam.exposure_compensation), fill=0xffffff )
 
 			overlay = overlay.rotate(180)
 			preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)

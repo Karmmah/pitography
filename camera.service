@@ -2,7 +2,7 @@
 Description=Camera Utilty
 
 [Service]
-ExecStart=/bin/sh /home/pi/pi_camera/start.sh
+ExecStart=/bin/sh /home/pi/pi_camera/start_camera.sh
 Restart=on-failure
 RestartSec=3
 
