@@ -35,15 +35,18 @@ sudo pip3 install RPi.GPIO
 sudo pip3 install spidev
 sudo pip3 install picamera
 ```
-5. Add Camera service to systemctl
+5. Create folder to save images to
+```
+mkdir ~/DCIM
+```
+6. Add Camera and file server service to systemctl
 ```
 cd ~/pi_camera
 sudo cp camera.service /etc/systemd/system/camera.service
 sudo systemctl enable camera
-```
-6. Create folder to save images to
-```
-mkdir ~/DCIM
+#file server to access the images taken over the local network via the ip address
+sudo cp camera.service /etc/systemd/system/file_server.service
+sudo systemctl enable file_server
 ```
 7. Increase available GPU memory to enable highest resolution capture
 ```
