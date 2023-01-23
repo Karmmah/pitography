@@ -25,6 +25,11 @@ ui_width, ui_height = 128, 128
 capture_resolution = (4032,3040)
 preview_resolution = (ui_width,ui_height)
 
+# camera parameters
+magnify_zoom = (0.35,0.35,0.3,0.3)
+min_shutter_speed = 20000 #minimal shutter speed 1/50 (20000 µs)
+magnify_flag = False
+
 # create startup image
 startup_image = Image.new("RGB", (ui_width,ui_height))
 startup_image_draw = ImageDraw.Draw(startup_image)
@@ -44,14 +49,6 @@ GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 def main(cam):
-	magnify_zoom = (0.35,0.35,0.3,0.3)
-
-	min_shutter_speed = 20000 #minimal shutter speed 1/50 (20000 µs)
-
-	magnify_flag = False
-	cam.resolution = preview_resolution
-	cam.rotation = 180 #rotate for preview
-
 	print("Running the program loop")
 	while True:
 		#check if current needed exposure speed calculated by the camera is lower than the minimum
@@ -150,6 +147,8 @@ if __name__ == "__main__":
 
 		cam = pc.PiCamera(framerate=24)
 #		time.sleep(2)
+		cam.resolution = preview_resolution
+		cam.rotation = 180 #rotate for preview
 		cam.zoom = (0,0,1,1) #reset camera crop
 		cam.start_preview() #preview to let the camera adjust exposure to available light
 
