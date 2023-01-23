@@ -87,34 +87,33 @@ def main(cam):
 			GPIO.output(backlight_pin, 1)
 
 		# show preview image on screen
-		else:
-			#preview variation 1 with Bytestream
-#			stream = BytesIO()
-#			cam.capture(stream, format="jpeg")
-#			stream.seek(0)
-#			preview = Image.open(stream)
+		#preview variation 1 with Bytestream
+#		stream = BytesIO()
+#		cam.capture(stream, format="jpeg")
+#		stream.seek(0)
+#		preview = Image.open(stream)
 
-			#preview variation 2 with numpy array
-			data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
-			cam.capture(data, "rgb")
-			preview = Image.fromarray(data, "RGB")
+		#preview variation 2 with numpy array
+		data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
+		cam.capture(data, "rgb")
+		preview = Image.fromarray(data, "RGB")
 
-			overlay = Image.new("L", (ui_width,ui_height))
+		overlay = Image.new("L", (ui_width,ui_height))
 
-			ov_draw = ImageDraw.Draw(overlay)
+		ov_draw = ImageDraw.Draw(overlay)
 
-			#draw magnifying glass symbol to overlay
-			if magnify_flag:
-				ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
-				ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
+		#draw magnifying glass symbol to overlay
+		if magnify_flag:
+			ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
+			ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
 
-#			if subprocess.check_output("systemctl is-active file_server", text=True, shell=True) == "active\n":
-#				ov_draw.text( (30,100), text="fs running", fill=0x00ff00 )
-#			else:
-#				ov_draw.text( (30,100), text="fs not running", fill=0xff0000 )
+#		if subprocess.check_output("systemctl is-active file_server", text=True, shell=True) == "active\n":
+#			ov_draw.text( (30,100), text="fs running", fill=0x00ff00 )
+#		else:
+#			ov_draw.text( (30,100), text="fs not running", fill=0xff0000 )
 
-			# check if internet connection is available and displey the cameras ip address
-			ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
+		# check if internet connection is available and displey the cameras ip address
+		ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
 
 #from the pi camera guide
 #camera.brightness = 50 (0 to 100)
@@ -129,30 +128,21 @@ def main(cam):
 #camera.rotation = 0
 #camera.crop = (0.0, 0.0, 1.0, 1.0)
 
-			# add current camera info to preview
-			#properties of camera are saved as Fraction objects; need special handling
-			ag = cam.analog_gain.numerator / cam.analog_gain.denominator
-			dg = cam.digital_gain.numerator / cam.digital_gain.denominator
-			ov_draw.text( (3,10), "ag "+str(round(ag,1)), fill=0xffffff )
-			ov_draw.text( (3,20), "dg "+str(round(dg,1)), fill=0xffffff )
-			ov_draw.text( (3,30), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
-			ov_draw.text( (3,40), "s 1/"+(str(int(1000000/cam.shutter_speed)) if cam.shutter_speed > 0 else "0"), fill=0xffffff )
-			ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
-#			ov_draw.text( (3,60), "comp "+str(cam.exposure_compensation), fill=0xffffff )
+		# add current camera info to preview
+		#properties of camera are saved as Fraction objects; need special handling
+		ag = cam.analog_gain.numerator / cam.analog_gain.denominator
+		dg = cam.digital_gain.numerator / cam.digital_gain.denominator
+		ov_draw.text( (3,10), "ag "+str(round(ag,1)), fill=0xffffff )
+		ov_draw.text( (3,20), "dg "+str(round(dg,1)), fill=0xffffff )
+		ov_draw.text( (3,30), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
+		ov_draw.text( (3,40), "s 1/"+(str(int(1000000/cam.shutter_speed)) if cam.shutter_speed > 0 else "0"), fill=0xffffff )
+		ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
+#		ov_draw.text( (3,60), "comp "+str(cam.exposure_compensation), fill=0xffffff )
 
-			overlay = overlay.rotate(180)
-			preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
+		overlay = overlay.rotate(180)
+		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 
-			disp.LCD_ShowImage(preview, 0, 0)
-
-		# change magnification
-		if GPIO.input(magnify_pin) == 0:
-			magnify_flag = not magnify_flag
-
-			if magnify_flag:
-				cam.zoom = magnify_zoom
-			else:
-				cam.zoom = (0,0,1,1)
+		disp.LCD_ShowImage(preview, 0, 0)
 
 if __name__ == "__main__":
 	try:
