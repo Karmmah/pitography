@@ -4,7 +4,8 @@ Description=DCIM File Server
 [Service]
 ExecStart=/bin/sh /home/pi/pi_camera/start_file_server.sh
 Restart=on-failure
-RestartSec=3
+RestartSec=15
 
 [Install]
 WantedBy=multi-user.target
+#After=camera.service
