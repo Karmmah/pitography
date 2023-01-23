@@ -49,7 +49,7 @@ GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
-def main(cam):
+def loop(cam):
 	global magnify_flag
 
 	#check if current needed exposure speed calculated by the camera is lower than the minimum
@@ -73,7 +73,7 @@ def main(cam):
 			cam.shutter_speed = max_shutter_speed
 
 		# capture the image
-#		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format="raw" )
+#		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), "yuv" )
 #		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format=".jpg", bayer=True )
 		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000) )
 		print("image captured:", int(time.time()*1000))
@@ -160,7 +160,7 @@ def main(cam):
 
 	disp.LCD_ShowImage(preview, 0, 0)
 
-if __name__ == "__main__":
+def main():
 	try:
 		disp.LCD_ShowImage(startup_image, 0, 0)
 
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
 		print("Running the program loop")
 		while True:
-			main(cam)
+			loop(cam)
 
 #	except:
 #		print("ERROR")
@@ -190,3 +190,6 @@ if __name__ == "__main__":
 		print("#  Program closed  #")
 		print("#                  #")
 		print("####################")
+
+if __name__ == "__main__":
+	main()
