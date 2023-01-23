@@ -29,7 +29,7 @@ preview_resolution = (ui_width,ui_height)
 global magnify_flag
 magnify_flag = False
 magnify_zoom = (0.35,0.35,0.3,0.3)
-min_shutter_speed = 20000 #minimal shutter speed 1/50 (20000 µs)
+max_shutter_speed = 20000 #minimal shutter speed 1/50 (20000 µs)
 
 # create startup image
 startup_image = Image.new("RGB", (ui_width,ui_height))
@@ -53,9 +53,9 @@ def main(cam):
 	global magnify_flag
 
 	#check if current needed exposure speed calculated by the camera is lower than the minimum
-	if cam.exposure_speed > min_shutter_speed:
-#		print("too dark", cam.exposure_speed)
-		cam.shutter_speed = min_shutter_speed
+#	if cam.exposure_speed > max_shutter_speed:
+#	if cam.shutter_speed > max_shutter_speed:
+#		cam.shutter_speed = max_shutter_speed
 
 	# capture image
 	if GPIO.input(shutter_pin) == 0:
@@ -67,6 +67,10 @@ def main(cam):
 		cam.rotation = 0
 		magnify_flag = False
 		cam.zoom = (0,0,1,1)
+
+		# check if exposure speed is below minimum
+		if cam.exposure_speed > max_shutter_speed:
+			cam.shutter_speed = max_shutter_speed
 
 		# capture the image
 #		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format="raw" )
@@ -80,6 +84,9 @@ def main(cam):
 		# reset resolution to preview
 		cam.resolution = preview_resolution
 		cam.rotation = 180
+
+		#reset shutter speed to automatic metering
+		cam.shutter_speed = 0
 
 		# turn backlight back on
 		GPIO.output(backlight_pin, 1)
@@ -138,10 +145,13 @@ def main(cam):
 	#properties of camera are saved as Fraction objects; need special handling
 	ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 	dg = cam.digital_gain.numerator / cam.digital_gain.denominator
+#	s = str(int(1000000/cam.shutter_speed)) if (cam.shutter_speed > 0 and cam.shutter_speed < max_shutter_speed) else str(int(1000000/max_shutter_speed))
+	s = str(int(1000000/cam.exposure_speed)) if cam.exposure_speed < max_shutter_speed else str(int(1000000/max_shutter_speed))
+
 	ov_draw.text( (3,10), "ag "+str(round(ag,1)), fill=0xffffff )
 	ov_draw.text( (3,20), "dg "+str(round(dg,1)), fill=0xffffff )
 	ov_draw.text( (3,30), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
-	ov_draw.text( (3,40), "s 1/"+(str(int(1000000/cam.shutter_speed)) if cam.shutter_speed > 0 else "0"), fill=0xffffff )
+	ov_draw.text( (3,40), "s 1/"+s, fill=0xffffff )
 	ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
 #	ov_draw.text( (3,60), "comp "+str(cam.exposure_compensation), fill=0xffffff )
 
