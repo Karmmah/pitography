@@ -5,12 +5,30 @@ from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageOps
 from io import BytesIO
 
 import time, numpy, subprocess
-import picamera as pc
+import picamera
+import picamera2
+
+#available keys
+#PIN 	Raspberry Pi Interface (BCM) 	Description
+#KEY1 			P21 		KEY1GPIO
+#KEY2 			P20 		KEY2GPIO
+#KEY3 			P16 		KEY3GPIO
+#Joystick UP 		P6 		Upward direction of the Joystick
+#Joystick Down 		P19 		Downward direction of the Joystick
+#Joystick Left 		P5 		Left direction of the Joystick
+#Joystick Right 	P26 		Right direction of the Joystick
+#Joystick Press 	P13 		Press the Joystick
+#SCLK 			P11/SCLK 	SPI clock line
+#MOSI 			P10/MOS 	SPI data line
+#CS 			P8/CE0 		Chip selection
+#DC 			P25 		Data/Command control
+#RST 			P27 		Reset
+#BL 			P24		Backlight
 
 # button mapping
 shutter_pin = 13
 backlight_pin = 24
-magnify_pin = 21
+magnify_pin = 16
 
 # display with hardware SPI
 disp = LCD_1in44.LCD()
@@ -164,7 +182,8 @@ def main():
 	try:
 		disp.LCD_ShowImage(startup_image, 0, 0)
 
-		cam = pc.PiCamera(framerate=24)
+		cam = picamera.PiCamera(framerate=24)
+#		cam = picamera2.Picamera2()
 		time.sleep(2)
 		cam.resolution = preview_resolution
 		cam.rotation = 180 #rotate for preview
@@ -175,8 +194,8 @@ def main():
 		while True:
 			loop(cam)
 
-#	except:
-#		print("ERROR")
+	except Exception as e:
+		print("ERROR:", e)
 
 	finally:
 		cam.stop_preview()
