@@ -29,6 +29,7 @@ import picamera2
 shutter_pin = 13
 backlight_pin = 24
 magnify_pin = 16
+preview_pin = 20
 
 # display with hardware SPI
 disp = LCD_1in44.LCD()
@@ -44,9 +45,10 @@ capture_resolution = (4032,3040)
 preview_resolution = (ui_width,ui_height)
 
 # camera parameters
-global magnify_flag
+global magnify_flag, preview_flag
 magnify_flag = False
 magnify_zoom = (0.35,0.35,0.3,0.3)
+preview_flag = True
 max_shutter_speed = 20000 #minimal shutter speed 1/50 (20000 µs)
 
 # create startup image
@@ -66,9 +68,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO.setup(preview_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 def loop(cam):
-	global magnify_flag
+	global magnify_flag, preview_flag
 
 	#check if current needed exposure speed calculated by the camera is lower than the minimum
 #	if cam.exposure_speed > max_shutter_speed:
@@ -109,32 +112,41 @@ def loop(cam):
 		# turn backlight back on
 		GPIO.output(backlight_pin, 1)
 
-	# magnify
+	# magnify button
 	if GPIO.input(magnify_pin) == 0:
 		magnify_flag = not magnify_flag
 		if magnify_flag:
 			cam.zoom = magnify_zoom
 		else:
 			cam.zoom = (0,0,1,1)
+		time.sleep(0.4)
 
 	# show preview image on screen
-	#preview variation 1 with Bytestream
-#	stream = BytesIO()
-#	cam.capture(stream, format="jpeg")
-#	stream.seek(0)
-#	preview = Image.open(stream)
-
-	#preview variation 2 with numpy array
-	data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
-	cam.capture(data, "rgb")
-	preview = Image.fromarray(data, "RGB")
+	if GPIO.input(preview_pin) == 0:
+		preview_flag = not preview_flag
+		time.sleep(0.4)
 
 	overlay = Image.new("L", (ui_width,ui_height))
-
 	ov_draw = ImageDraw.Draw(overlay)
+	data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
 
-	#draw magnifying glass symbol to overlay
-	if magnify_flag:
+	if preview_flag:
+		#variation 1 with Bytestream
+#		stream = BytesIO()
+#		cam.capture(stream, format="jpeg")
+#		stream.seek(0)
+#		preview = Image.open(stream)
+
+		#variation 2 with numpy array
+		cam.capture(data, "rgb")
+
+	else:
+		ov_draw.rectangle( (0,0,ui_width,ui_height), fill=0x000000 )
+
+	preview = Image.fromarray(data, "RGB")
+
+	# draw magnifying glass symbol to overlay
+	if magnify_flag and preview_flag:
 		ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
 		ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
 
