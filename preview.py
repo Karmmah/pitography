@@ -1,8 +1,8 @@
-imprt time
+import time
 
-#def get_preview(cam, data):
-#	cam.capture(data, "rgb")
-#	return data
+def get_preview(cam, data):
+	cam.capture(data, "rgb")
+	return data
 
 def main():
 	try:
