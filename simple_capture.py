@@ -96,8 +96,9 @@ def loop(cam):
 		# capture the image
 #		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), "yuv" )
 #		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format=".jpg", bayer=True )
+		start = time.time() #debug
 		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000) )
-		print("image captured:", int(time.time()*1000))
+		print("image captured:", int(time.time()*1000), " that took", time.time()-start, "seconds") #debug
 
 		# display capture success message
 		disp.LCD_ShowImage(capture_success, 0, 0)
@@ -131,6 +132,8 @@ def loop(cam):
 	data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
 
 	if preview_flag:
+		start = time.time() #debug
+
 		#variation 1 with Bytestream
 #		stream = BytesIO()
 #		cam.capture(stream, format="jpeg")
@@ -139,6 +142,8 @@ def loop(cam):
 
 		#variation 2 with numpy array
 		cam.capture(data, "rgb")
+
+		print("preview time:", time.time()-start) #debug
 
 	else:
 		ov_draw.rectangle( (0,0,ui_width,ui_height), fill=0x000000 )
@@ -175,7 +180,6 @@ def loop(cam):
 	#properties of camera are saved as Fraction objects; need special handling
 	ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 	dg = cam.digital_gain.numerator / cam.digital_gain.denominator
-#	s = str(int(1000000/cam.shutter_speed)) if (cam.shutter_speed > 0 and cam.shutter_speed < max_shutter_speed) else str(int(1000000/max_shutter_speed))
 	s = str(int(1000000/cam.exposure_speed)) if cam.exposure_speed < max_shutter_speed else str(int(1000000/max_shutter_speed))
 
 	ov_draw.text( (3,10), "ag "+str(round(ag,1)), fill=0xffffff )
