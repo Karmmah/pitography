@@ -70,6 +70,54 @@ GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.setup(preview_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
+def debug_output(status):
+#	print()
+#	print("# button mapping")
+#	print("# display with hardware SPI")
+#	print("# ui parameters")
+#	print("# camera parameters")
+#	print("# create startup image")
+#	print("# create capture success screen")
+#	print("# GPIO init")
+#	print("	# capture image")
+#	print("		# blank the backlight to visualise that the image is being taken")
+#	print("		# set the capture resolution and reset crop, rotation and magnification")
+#	print("		# check if exposure speed is below minimum")
+#	print("		# capture the image")
+#	print("		# display capture success message")
+#	print("		# reset resolution to preview")
+#	print("		# turn backlight back on")
+#	print("	# magnify button")
+#	print("	# show preview image on screen")
+#	print("	# draw magnifying glass symbol to overlay")
+#	print("	# check if internet connection is available and displey the cameras ip address")
+#	print("	# add current camera info to preview")
+#	print()
+
+#	print(status)
+
+	print("\nloop:")
+
+	if status == "capture":
+		print("X capture")
+	else:
+		print("  capture")
+
+	if status == "magnify":
+		print("X magnify")
+	else:
+		print("  magnify")
+
+	if status == "preview":
+		print("X preview")
+	else:
+		print("  preview")
+
+	if status == "camera info":
+		print("X camera_info")
+	else:
+		print("  camera_info")
+
 def loop(cam):
 	global magnify_flag, preview_flag
 
@@ -80,6 +128,8 @@ def loop(cam):
 
 	# capture image
 	if GPIO.input(shutter_pin) == 0:
+		#debug_output("capture")
+
 		# blank the backlight to visualise that the image is being taken
 		GPIO.output(backlight_pin, 0)
 
@@ -115,6 +165,8 @@ def loop(cam):
 
 	# magnify button
 	if GPIO.input(magnify_pin) == 0:
+		#debug_output("magnify")
+
 		magnify_flag = not magnify_flag
 		if magnify_flag:
 			cam.zoom = magnify_zoom
@@ -124,6 +176,8 @@ def loop(cam):
 
 	# show preview image on screen
 	if GPIO.input(preview_pin) == 0:
+		#debug_output("preview")
+
 		preview_flag = not preview_flag
 		time.sleep(0.4)
 
@@ -132,7 +186,7 @@ def loop(cam):
 	data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
 
 	if preview_flag:
-		start = time.time() #debug
+#		start = time.time() #debug
 
 		#variation 1 with Bytestream
 #		stream = BytesIO()
@@ -143,7 +197,7 @@ def loop(cam):
 		#variation 2 with numpy array
 		cam.capture(data, "rgb")
 
-		print("preview time:", time.time()-start) #debug
+#		print("preview time:", time.time()-start) #debug
 
 	else:
 		ov_draw.rectangle( (0,0,ui_width,ui_height), fill=0x000000 )
@@ -177,6 +231,8 @@ def loop(cam):
 #camera.crop = (0.0, 0.0, 1.0, 1.0)
 
 	# add current camera info to preview
+	#debug_output("camera info")
+
 	#properties of camera are saved as Fraction objects; need special handling
 	ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 	dg = cam.digital_gain.numerator / cam.digital_gain.denominator
@@ -192,6 +248,7 @@ def loop(cam):
 	overlay = overlay.rotate(180)
 	preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 
+	#debug_output("display on screen")
 	disp.LCD_ShowImage(preview, 0, 0)
 
 def main():
