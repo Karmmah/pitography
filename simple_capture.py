@@ -6,7 +6,7 @@ from io import BytesIO
 
 import time, numpy, subprocess
 import picamera
-import picamera2
+#import picamera2
 
 #available keys
 #PIN 	Raspberry Pi Interface (BCM) 	Description
