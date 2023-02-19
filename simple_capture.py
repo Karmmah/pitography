@@ -2,11 +2,11 @@ import LCD_1in44
 import LCD_Config
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageOps
-from io import BytesIO
+#from io import BytesIO
 
 import time, numpy, subprocess
 import picamera
-import picamera2
+#import picamera2
 
 #available keys
 #PIN 	Raspberry Pi Interface (BCM) 	Description
@@ -70,66 +70,11 @@ GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.setup(preview_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
-def debug_output(status):
-#	print()
-#	print("# button mapping")
-#	print("# display with hardware SPI")
-#	print("# ui parameters")
-#	print("# camera parameters")
-#	print("# create startup image")
-#	print("# create capture success screen")
-#	print("# GPIO init")
-#	print("	# capture image")
-#	print("		# blank the backlight to visualise that the image is being taken")
-#	print("		# set the capture resolution and reset crop, rotation and magnification")
-#	print("		# check if exposure speed is below minimum")
-#	print("		# capture the image")
-#	print("		# display capture success message")
-#	print("		# reset resolution to preview")
-#	print("		# turn backlight back on")
-#	print("	# magnify button")
-#	print("	# show preview image on screen")
-#	print("	# draw magnifying glass symbol to overlay")
-#	print("	# check if internet connection is available and displey the cameras ip address")
-#	print("	# add current camera info to preview")
-#	print()
-
-#	print(status)
-
-	print("\nloop:")
-
-	if status == "capture":
-		print("X capture")
-	else:
-		print("  capture")
-
-	if status == "magnify":
-		print("X magnify")
-	else:
-		print("  magnify")
-
-	if status == "preview":
-		print("X preview")
-	else:
-		print("  preview")
-
-	if status == "camera info":
-		print("X camera_info")
-	else:
-		print("  camera_info")
-
 def loop(cam):
 	global magnify_flag, preview_flag
 
-	#check if current needed exposure speed calculated by the camera is lower than the minimum
-#	if cam.exposure_speed > max_shutter_speed:
-#	if cam.shutter_speed > max_shutter_speed:
-#		cam.shutter_speed = max_shutter_speed
-
 	# capture image
 	if GPIO.input(shutter_pin) == 0:
-		#debug_output("capture")
-
 		# blank the backlight to visualise that the image is being taken
 		GPIO.output(backlight_pin, 0)
 
@@ -147,7 +92,7 @@ def loop(cam):
 #		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), "yuv" )
 #		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format=".jpg", bayer=True )
 		start = time.time() #debug
-		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000) )
+		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), use_video_port=False )
 		print("image captured:", int(time.time()*1000), " that took", time.time()-start, "seconds") #debug
 
 		# display capture success message
@@ -165,8 +110,6 @@ def loop(cam):
 
 	# magnify button
 	if GPIO.input(magnify_pin) == 0:
-		#debug_output("magnify")
-
 		magnify_flag = not magnify_flag
 		if magnify_flag:
 			cam.zoom = magnify_zoom
@@ -176,8 +119,6 @@ def loop(cam):
 
 	# show preview image on screen
 	if GPIO.input(preview_pin) == 0:
-		#debug_output("preview")
-
 		preview_flag = not preview_flag
 		time.sleep(0.4)
 
@@ -195,7 +136,7 @@ def loop(cam):
 #		preview = Image.open(stream)
 
 		#variation 2 with numpy array
-		cam.capture(data, "rgb")
+		cam.capture(data, "rgb", use_video_port=True)
 
 #		print("preview time:", time.time()-start) #debug
 
@@ -208,11 +149,6 @@ def loop(cam):
 	if magnify_flag and preview_flag:
 		ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
 		ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
-
-#	if subprocess.check_output("systemctl is-active file_server", text=True, shell=True) == "active\n":
-#		ov_draw.text( (30,100), text="fs running", fill=0x00ff00 )
-#	else:
-#		ov_draw.text( (30,100), text="fs not running", fill=0xff0000 )
 
 	# check if internet connection is available and displey the cameras ip address
 	ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
@@ -231,8 +167,6 @@ def loop(cam):
 #camera.crop = (0.0, 0.0, 1.0, 1.0)
 
 	# add current camera info to preview
-	#debug_output("camera info")
-
 	#properties of camera are saved as Fraction objects; need special handling
 	ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 	dg = cam.digital_gain.numerator / cam.digital_gain.denominator
@@ -248,7 +182,6 @@ def loop(cam):
 	overlay = overlay.rotate(180)
 	preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 
-	#debug_output("display on screen")
 	disp.LCD_ShowImage(preview, 0, 0)
 
 def main():
@@ -256,7 +189,6 @@ def main():
 		disp.LCD_ShowImage(startup_image, 0, 0)
 
 		cam = picamera.PiCamera(framerate=24)
-#		cam = picamera2.Picamera2()
 		time.sleep(2)
 		cam.resolution = preview_resolution
 		cam.rotation = 180 #rotate for preview
