@@ -189,7 +189,7 @@ def main():
 		disp.LCD_ShowImage(startup_image, 0, 0)
 
 		cam = picamera.PiCamera(framerate=24)
-		time.sleep(2)
+#		time.sleep(2)
 		cam.resolution = preview_resolution
 		cam.rotation = 180 #rotate for preview
 		cam.zoom = (0,0,1,1) #reset camera crop
