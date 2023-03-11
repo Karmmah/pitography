@@ -127,7 +127,7 @@ def loop(cam):
 	data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
 
 	if preview_flag:
-#		start = time.time() #debug
+		start = time.time() #debug
 
 		#variation 1 with Bytestream
 #		stream = BytesIO()
@@ -189,11 +189,10 @@ def main():
 		disp.LCD_ShowImage(startup_image, 0, 0)
 
 		cam = picamera.PiCamera(framerate=24)
-#		time.sleep(2)
 		cam.resolution = preview_resolution
 		cam.rotation = 180 #rotate for preview
 		cam.zoom = (0,0,1,1) #reset camera crop
-		cam.start_preview() #preview to let the camera adjust exposure to available light
+#		cam.start_preview() #preview to let the camera adjust exposure to available light
 
 		print("Running the program loop")
 		while True:
@@ -206,14 +205,11 @@ def main():
 		cam.stop_preview()
 		cam.close()
 
+		GPIO.output(backlight_pin, 0)
 		GPIO.cleanup()
 		print(" -GPIO.cleanup()")
 
-		print("\n####################")
-		print("#                  #")
-		print("#  Program closed  #")
-		print("#                  #")
-		print("####################")
+		print("Simple Capture closed")
 
 if __name__ == "__main__":
 	main()
