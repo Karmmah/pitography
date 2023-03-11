@@ -7,8 +7,6 @@ import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageOps
 import picamera
 
-ui_width, ui_height = 128, 128
-
 #available keys
 #PIN 	Raspberry Pi Interface (BCM) 	Description
 #KEY1 			P21 		KEY1GPIO
@@ -27,16 +25,21 @@ ui_width, ui_height = 128, 128
 #BL 			P24		Backlight
 
 def main():
+	ui_width, ui_height = 128, 128
+	button_press_wait_time = 0.3
+
 	# button mapping
 	shutter_pin = 13
 	backlight_pin = 24
 	magnify_pin = 16
+	menu_pin = 21
 
 	# GPIO init
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 	GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 	GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(menu_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 	# display with hardware SPI
 	disp = LCD_1in44.LCD()
@@ -44,10 +47,24 @@ def main():
 	disp.LCD_Init(Lcd_ScanDir)
 	disp.LCD_Clear()
 
-	# create startup image
+	# create and display startup image
 	startup_screen = Image.new("RGB", (ui_width,ui_height))
 	startup_screen_draw = ImageDraw.Draw(startup_screen)
 	startup_screen_draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
+	disp.LCD_ShowImage(startup_screen, 0, 0)
+
+	# initialise camera parameters
+	max_shutter_time = 20000 #1/50 seconds = 20000µs
+	capture_resolution = (4056,3040)
+#	capture_resolution = (4032,3040)
+	preview_resolution = (ui_width,ui_height)
+	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
+	magnify_flag = False
+
+	# set up camera
+	cam = picamera.PiCamera(framerate=24)
+	cam.resolution = preview_resolution
+	cam.rotation = 180 #rotation for preview only
 
 	# create capture success screen
 	capture_success_screen = Image.new("RGB", (ui_width,ui_height))
@@ -56,20 +73,14 @@ def main():
 	capture_success_screen_draw.text( (0,0), "Image saved" )
 	capture_success_screen = capture_success_screen.rotate(180)
 
-	magnify_flag = False
+	# create menu screen
+	main_menu_screen = Image.new("RGB", (ui_width,ui_height))
+	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
+	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xffab32)
+	menu_flag = False
+	menu_index = 0 #0:main menu, 1: timelapse , 11:timelapse interval settings
 
-	max_shutter_time = 20000 #1/50 seconds = 20000µs
-	capture_resolution = (4056,3040)
-#	capture_resolution = (4032,3040)
-	preview_resolution = (ui_width,ui_height)
-	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
-
-	# set up camera
-	cam = picamera.PiCamera(framerate=24)
-	cam.resolution = preview_resolution
-	cam.rotation = 180 #rotation for preview only
-
-	# loop
+	# main loop
 	while True:
 		# change magnification
 		if GPIO.input(magnify_pin) == 0:
@@ -78,7 +89,7 @@ def main():
 				cam.zoom = magnify_zoom
 			else:
 				cam.zoom = (0,0,1,1)
-			time.sleep(0.4)
+			time.sleep(button_press_wait_time)
 
 		# capture image
 		if GPIO.input(shutter_pin) == 0:
@@ -98,6 +109,14 @@ def main():
 			cam.rotation = 180
 			GPIO.output(backlight_pin, 1)
 
+		# show menu
+		if GPIO.input(menu_pin) == 0:
+			menu_flag = not menu_flag
+			time.sleep(button_press_wait_time)
+		if menu_flag:
+			disp.LCD_ShowImage(main_menu_screen, 0, 0)
+			continue
+
 		# update preview
 		overlay = Image.new("L", (ui_width,ui_height))
 		ov_draw = ImageDraw.Draw(overlay)
@@ -108,8 +127,6 @@ def main():
 		if magnify_flag:
 			ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
 			ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
-		#check if internet connection is available and displey the cameras ip address
-		ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
 		#add current camera info to preview
 		ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 		dg = cam.digital_gain.numerator / cam.digital_gain.denominator
@@ -121,15 +138,19 @@ def main():
 		ov_draw.text( (3,40), "s 1/"+s, fill=0xffffff )
 		ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
 	#	ov_draw.text( (3,60), "comp "+str(cam.exposure_compensation), fill=0xffffff )
+		#check if internet connection is available and displey the cameras ip address
+		ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
 		overlay = overlay.rotate(180)
 		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
 	# clean up everything and close everything
 	cam.close()
+	print("Closed camera")
 	GPIO.output(backlight_pin, 0)
+	print("Disabled backlight")
 	GPIO.cleanup()
-	print("Program loop ended")
+	print("GPIO cleanup")
 
 if __name__ == "__main__":
 	try:
