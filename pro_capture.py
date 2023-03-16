@@ -24,11 +24,16 @@ import picamera
 #RST 			P27 		Reset
 #BL 			P24		Backlight
 
-# button mapping
-shutter_pin = 13
+# button mapping (mirrored to references given above)
+key3_pin = 16
+key2_pin = 20
+key1_pin = 21
+up_pin = 19
+down_pin = 6
+left_pin = 26
+right_pin = 5
+press_pin = 13
 backlight_pin = 24
-magnify_pin = 16
-menu_pin = 21
 
 def main(cam):
 	ui_width, ui_height = 128, 128
@@ -36,10 +41,16 @@ def main(cam):
 
 	# GPIO init
 	GPIO.setmode(GPIO.BCM)
-	GPIO.setup(shutter_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setwarnings(False)
+	GPIO.setup(key3_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(key2_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(key1_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(up_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(down_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(left_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(right_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+	GPIO.setup(press_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 	GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
-	GPIO.setup(magnify_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(menu_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 	# display with hardware SPI
 	disp = LCD_1in44.LCD()
@@ -69,46 +80,65 @@ def main(cam):
 	capture_success_screen = Image.new("RGB", (ui_width,ui_height))
 	capture_success_screen_draw = ImageDraw.Draw(capture_success_screen)
 	capture_success_screen_draw.rectangle( (0,0,ui_width,ui_height), fill=0 )
-	capture_success_screen_draw.text( (0,0), "Image saved" )
+	capture_success_screen_draw.text( (32,60), "Image saved" )
 	capture_success_screen = capture_success_screen.rotate(180)
 
 	# create menu screen
 	main_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
 	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xffab32)
+	#arrows
 	main_menu_screen_draw.polygon( (59,58,69,58,64,53), fill=0x000000)
 	main_menu_screen_draw.polygon( (70,59,70,69,75,64), fill=0x000000)
 	main_menu_screen_draw.polygon( (59,70,69,70,64,75), fill=0x000000)
 	main_menu_screen_draw.polygon( (58,59,58,69,53,64), fill=0x000000)
-	main_menu_screen_draw.text((49,30), "Photo")
-	main_menu_screen_draw.text((83,58), "TMLPSE")
+	#labels
+	main_menu_screen_draw.text((11,58), " Photo")
+	main_menu_screen_draw.text((32,30), " Timelapse")
+#	main_menu_screen_draw.line((22,71,40,71), fill=0x00ff00, width=3)
+#	main_menu_screen_draw.line((46,43,82,43), fill=0x0000ff, width=3)
 	main_menu_screen = main_menu_screen.rotate(180)
-	menu_index = 0 #0: no menu, 1: main menu, 11: still photo settings, 2: timelapse , 21:timelapse interval settings
+	menu_index = 0 #0: no menu, 1: main menu, 2: still photo, 21: still photo settings, 3: timelapse , 31:timelapse interval settings
 
 	capture_mode = 0 #0: still photo, 1: timelapse
 	timelapse_capture_flag = False
 	timelapse_interval = 5 #[s]
 	last_timelapse_frame_time = 0
 
+	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
+
 	# main loop
 	while True:
 		# show menu
-		if GPIO.input(menu_pin) == 0 and not timelapse_capture_flag:
+		if GPIO.input(key1_pin) == 0 and not timelapse_capture_flag:
 			menu_index = 1 if menu_index == 0 else 0
 			time.sleep(button_press_wait_time)
+
 		if menu_index != 0:
-			if menu_index == 1: #main menu
-				print("main menu with colors")
-#				active_color, inactive_color = 0x00ff00, 0xffab32
-				active_color, inactive_color = 0x00ff00, 0xff0000
-#				main_menu_screen_draw.line((53,37,75,37), fill=active_color if capture_mode == 0 else inactive_color, width=5)
-				main_menu_screen_draw.rectangle((9,7,75,79), fill=0xffffff)
-#				main_menu_screen_draw.line((86,65,98,65), fill=active_color if capture_mode == 1 else inactive_color, width=5)
-			disp.LCD_ShowImage(main_menu_screen, 0, 0)
+			#main menu
+			if menu_index == 1:
+				active_color, inactive_color = 0x0000ff, 0xffab32
+#				active_color, inactive_color = 0x00ff00, 0x0000ff
+				main_menu_screen_draw.line((106,56,88,56), fill=active_color if capture_mode == 0 else inactive_color, width=3)
+				main_menu_screen_draw.line((46,83,82,83), fill=active_color if capture_mode == 1 else inactive_color, width=3)
+				disp.LCD_ShowImage(main_menu_screen, 0, 0)
+				if GPIO.input(up_pin) == 0:
+					capture_mode = 1
+				elif GPIO.input(left_pin) == 0:
+					capture_mode = 0
+
+			#still photo menu
+			elif menu_index == 2:
+				pass
+
+			#timelapse menu
+			elif menu_index == 3:
+				pass
+
 			continue #skip capturing and preview while in menu
 
 		# change magnification
-		if GPIO.input(magnify_pin) == 0:
+		if GPIO.input(key3_pin) == 0:
 			magnify_flag = not magnify_flag
 			if magnify_flag:
 				cam.zoom = magnify_zoom
@@ -117,7 +147,7 @@ def main(cam):
 			time.sleep(button_press_wait_time)
 
 		# capture timelapse
-		if GPIO.input(shutter_pin) == 0 and capture_mode == 1:
+		if GPIO.input(press_pin) == 0 and capture_mode == 1:
 			timelapse_capture_flag = not timelapse_capture_flag
 			time.sleep(button_press_wait_time)
 		if timelapse_capture_flag:
@@ -132,7 +162,7 @@ def main(cam):
 				GPIO.output(backlight_pin, 1)
 
 		# capture still image
-		if GPIO.input(shutter_pin) == 0 and capture_mode == 0:
+		if GPIO.input(press_pin) == 0 and capture_mode == 0:
 			GPIO.output(backlight_pin, 0) #blank backlight to show image was taken
 			# set camera to capture settings
 			cam.zoom = (0,0,1,1)
