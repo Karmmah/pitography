@@ -52,19 +52,19 @@ def main(cam):
 	GPIO.setup(press_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 	GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
 
-	# display with hardware SPI
+	# display with hardware SPI setup
 	disp = LCD_1in44.LCD()
 	Lcd_ScanDir = LCD_1in44.SCAN_DIR_DFT
 	disp.LCD_Init(Lcd_ScanDir)
 	disp.LCD_Clear()
 
-	# create and display startup image
+	# startup image creation and display
 	startup_screen = Image.new("RGB", (ui_width,ui_height))
 	startup_screen_draw = ImageDraw.Draw(startup_screen)
 	startup_screen_draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
 	disp.LCD_ShowImage(startup_screen, 0, 0)
 
-	# initialise camera parameters
+	# camera parameters initialisation
 	max_shutter_time = 20000 #1/50 seconds = 20000µs
 	capture_resolution = (4056,3040)
 #	capture_resolution = (4032,3040)
@@ -72,18 +72,18 @@ def main(cam):
 	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
 	magnify_flag = False
 
-	# set up camera
+	# camera setup
 	cam.resolution = preview_resolution
 	cam.rotation = 180 #rotation for preview only
 
-	# create capture success screen
+	# capture success screen setup
 	capture_success_screen = Image.new("RGB", (ui_width,ui_height))
 	capture_success_screen_draw = ImageDraw.Draw(capture_success_screen)
 	capture_success_screen_draw.rectangle( (0,0,ui_width,ui_height), fill=0 )
 	capture_success_screen_draw.text( (32,60), "Image saved" )
 	capture_success_screen = capture_success_screen.rotate(180)
 
-	# create menu screen
+	# menu screen setup
 	main_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
 	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xffab32)
@@ -95,47 +95,77 @@ def main(cam):
 	#labels
 	main_menu_screen_draw.text((11,58), " Photo")
 	main_menu_screen_draw.text((32,30), " Timelapse")
-#	main_menu_screen_draw.line((22,71,40,71), fill=0x00ff00, width=3)
-#	main_menu_screen_draw.line((46,43,82,43), fill=0x0000ff, width=3)
 	main_menu_screen = main_menu_screen.rotate(180)
-	menu_index = 0 #0: no menu, 1: main menu, 2: still photo, 21: still photo settings, 3: timelapse , 31:timelapse interval settings
+	menu_index = 0
+	main_menu_index = 1
 
-	capture_mode = 0 #0: still photo, 1: timelapse
+	# still menu setup
+	still_menu_index = 2
+	still_menu_screen = Image.new("RGB", (ui_width,ui_height))
+	still_menu_draw = ImageDraw.Draw(still_menu_screen)
+	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x000099)
+	still_menu_draw.text((15,8), " Photo Settings")
+	still_menu_screen = still_menu_screen.rotate(180)
+
+	# timelapse menu setup
+	timelapse_menu_index = 3
+	timelapse_menu_screen = Image.new("RGB", (ui_width,ui_height))
+	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
+	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x009900)
+	timelapse_menu_draw.text((5,8), " Timelapse Settings")
+	timelapse_menu_screen = timelapse_menu_screen.rotate(180)
+
+	capture_mode = 0
+	still_capture_index = 0
+	timelapse_capture_index = 1
 	timelapse_capture_flag = False
 	timelapse_interval = 5 #[s]
-	last_timelapse_frame_time = 0
+#	last_timelapse_frame_time = 0
 
+	# reassign draw objects to menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
+	still_menu_draw = ImageDraw.Draw(still_menu_screen)
 
 	# main loop
 	while True:
-		# show menu
+		# show or hide menu
 		if GPIO.input(key1_pin) == 0 and not timelapse_capture_flag:
-			menu_index = 1 if menu_index == 0 else 0
+			menu_index = main_menu_index if menu_index == 0 else 0
 			time.sleep(button_press_wait_time)
 
 		if menu_index != 0:
 			#main menu
-			if menu_index == 1:
+			if menu_index == main_menu_index:
 				active_color, inactive_color = 0x0000ff, 0xffab32
 #				active_color, inactive_color = 0x00ff00, 0x0000ff
-				main_menu_screen_draw.line((106,56,88,56), fill=active_color if capture_mode == 0 else inactive_color, width=3)
-				main_menu_screen_draw.line((46,83,82,83), fill=active_color if capture_mode == 1 else inactive_color, width=3)
+				main_menu_screen_draw.line((106,56,88,56), fill = active_color if capture_mode == still_capture_index else inactive_color, width=3)
+				main_menu_screen_draw.line((46,83,82,83), fill = active_color if capture_mode == timelapse_capture_index else inactive_color, width=3)
 				disp.LCD_ShowImage(main_menu_screen, 0, 0)
+
 				if GPIO.input(up_pin) == 0:
-					capture_mode = 1
+					capture_mode = timelapse_capture_index
+					menu_index = timelapse_menu_index
+					time.sleep(button_press_wait_time)
 				elif GPIO.input(left_pin) == 0:
-					capture_mode = 0
+					capture_mode = still_capture_index
+					menu_index = still_menu_index
+					time.sleep(button_press_wait_time)
 
 			#still photo menu
-			elif menu_index == 2:
-				pass
+			elif menu_index == still_menu_index:
+				disp.LCD_ShowImage(still_menu_screen, 0, 0)
+				if GPIO.input(press_pin) == 0:
+					menu_index = 0
+					time.sleep(button_press_wait_time)
 
 			#timelapse menu
-			elif menu_index == 3:
-				pass
+			elif menu_index == timelapse_menu_index:
+				disp.LCD_ShowImage(timelapse_menu_screen, 0, 0)
+				if GPIO.input(press_pin) == 0:
+					menu_index = 0
+					time.sleep(button_press_wait_time)
 
-			continue #skip capturing and preview while in menu
+			continue #skip image capture and preview while in menu
 
 		# change magnification
 		if GPIO.input(key3_pin) == 0:
@@ -147,7 +177,7 @@ def main(cam):
 			time.sleep(button_press_wait_time)
 
 		# capture timelapse
-		if GPIO.input(press_pin) == 0 and capture_mode == 1:
+		if GPIO.input(press_pin) == 0 and capture_mode == timelapse_capture_index:
 			timelapse_capture_flag = not timelapse_capture_flag
 			time.sleep(button_press_wait_time)
 		if timelapse_capture_flag:
@@ -162,7 +192,7 @@ def main(cam):
 				GPIO.output(backlight_pin, 1)
 
 		# capture still image
-		if GPIO.input(press_pin) == 0 and capture_mode == 0:
+		if GPIO.input(press_pin) == 0 and capture_mode == still_capture_index:
 			GPIO.output(backlight_pin, 0) #blank backlight to show image was taken
 			# set camera to capture settings
 			cam.zoom = (0,0,1,1)
