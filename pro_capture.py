@@ -104,7 +104,7 @@ def main(cam):
 	still_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	still_menu_draw = ImageDraw.Draw(still_menu_screen)
 	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x000099)
-	still_menu_draw.text((15,8), " Photo Settings")
+	still_menu_draw.text((16,8), " Photo Settings")
 	still_menu_screen = still_menu_screen.rotate(180)
 
 	# timelapse menu setup
@@ -113,6 +113,7 @@ def main(cam):
 	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
 	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x009900)
 	timelapse_menu_draw.text((5,8), " Timelapse Settings")
+	timelapse_menu_draw.text((12,30), " Interval")
 	timelapse_menu_screen = timelapse_menu_screen.rotate(180)
 
 	capture_mode = 0
@@ -120,7 +121,7 @@ def main(cam):
 	timelapse_capture_index = 1
 	timelapse_capture_flag = False
 	timelapse_interval = 5 #[s]
-#	last_timelapse_frame_time = 0
+	last_timelapse_frame_time = 0
 
 	# reassign draw objects to menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
@@ -165,6 +166,7 @@ def main(cam):
 					menu_index = 0
 					time.sleep(button_press_wait_time)
 
+			time.sleep(0.1)
 			continue #skip image capture and preview while in menu
 
 		# change magnification
@@ -181,12 +183,14 @@ def main(cam):
 			timelapse_capture_flag = not timelapse_capture_flag
 			time.sleep(button_press_wait_time)
 		if timelapse_capture_flag:
-			if time.time() > last_timelapse_frame_time + timelapse_interval:
+#			print(time.time(), last_timelapse_frame_time + timelapse_interval)
+			if time.time() > (last_timelapse_frame_time + timelapse_interval):
 				GPIO.output(backlight_pin, 0)
 				cam.zoom = (0,0,1,1)
 				cam.rotation = 0
 				cam.resolution = capture_resolution
-				cam.capture("/home/pi/DCIM/timelapse/%d.jpg" & int(time.time()*1000), use_video_port=False)
+				cam.capture("/home/pi/DCIM/timelapse/%d.jpg" % int(time.time()*1000), use_video_port=False)
+				last_timelapse_frame_time = time.time()
 				cam.resolution = preview_resolution
 				cam.rotation = 180
 				GPIO.output(backlight_pin, 1)
@@ -223,15 +227,20 @@ def main(cam):
 		ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 		dg = cam.digital_gain.numerator / cam.digital_gain.denominator
 		s = str(int(1000000/cam.exposure_speed)) if cam.exposure_speed < max_shutter_time else str(int(1000000/max_shutter_time))
-		ov_draw.text( (54,3), "pro", fill=0xffffff )
+#		ov_draw.text( (54,3), "pro", fill=0xffffff )
 		ov_draw.text( (3,10), "ag "+str(round(ag,1)), fill=0xffffff )
 		ov_draw.text( (3,20), "dg "+str(round(dg,1)), fill=0xffffff )
 		ov_draw.text( (3,30), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
 		ov_draw.text( (3,40), "s 1/"+s, fill=0xffffff )
 		ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
-	#	ov_draw.text( (3,60), "comp "+str(cam.exposure_compensation), fill=0xffffff )
+		if capture_mode == still_capture_index:
+			ov_draw.text( (0,0), " Photo", fill=0xffffff )
+		elif capture_mode == timelapse_capture_index:
+			ov_draw.text( (0,0), " Timelapse", fill=0xffffff )
+			if timelapse_capture_flag:
+				ov_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
 		#check if internet connection is available and displey the cameras ip address
-		ov_draw.text( (25,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
+		ov_draw.text( (26,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
 		overlay = overlay.rotate(180)
 		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
