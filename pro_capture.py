@@ -25,9 +25,9 @@ import picamera
 #BL 			P24		Backlight
 
 # button mapping (mirrored to references given above)
-key3_pin = 16
-key2_pin = 20
 key1_pin = 21
+key2_pin = 20
+key3_pin = 16
 up_pin = 19
 down_pin = 6
 left_pin = 26
@@ -35,35 +35,9 @@ right_pin = 5
 press_pin = 13
 backlight_pin = 24
 
-def main(cam):
-	ui_width, ui_height = 128, 128
-	button_press_wait_time = 0.2
+ui_width, ui_height = 128, 128
 
-	# GPIO init
-	GPIO.setmode(GPIO.BCM)
-	GPIO.setwarnings(False)
-	GPIO.setup(key3_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(key2_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(key1_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(up_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(down_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(left_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(right_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(press_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-	GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
-
-	# display with hardware SPI setup
-	disp = LCD_1in44.LCD()
-	Lcd_ScanDir = LCD_1in44.SCAN_DIR_DFT
-	disp.LCD_Init(Lcd_ScanDir)
-	disp.LCD_Clear()
-
-	# startup image creation and display
-	startup_screen = Image.new("RGB", (ui_width,ui_height))
-	startup_screen_draw = ImageDraw.Draw(startup_screen)
-	startup_screen_draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
-	disp.LCD_ShowImage(startup_screen, 0, 0)
-
+def main(cam, disp):
 	# camera parameters initialisation
 	max_shutter_time = 20000 #1/50 seconds = 20000µs
 	capture_resolution = (4056,3040)
@@ -71,6 +45,9 @@ def main(cam):
 	preview_resolution = (ui_width,ui_height)
 	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
 	magnify_flag = False
+	timelapse_interval = 6 #[s]
+
+	button_press_wait_time = 0.2
 
 	# camera setup
 	cam.resolution = preview_resolution
@@ -84,9 +61,12 @@ def main(cam):
 	capture_success_screen = capture_success_screen.rotate(180)
 
 	# menu screen setup
+	current_menu_index = 0
+	main_menu_index = 1
 	main_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
-	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xffab32)
+#	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xffab32)
+	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xd89552)
 	#arrows
 	main_menu_screen_draw.polygon( (59,58,69,58,64,53), fill=0x000000)
 	main_menu_screen_draw.polygon( (70,59,70,69,75,64), fill=0x000000)
@@ -96,14 +76,14 @@ def main(cam):
 	main_menu_screen_draw.text((11,58), " Photo")
 	main_menu_screen_draw.text((32,30), " Timelapse")
 	main_menu_screen = main_menu_screen.rotate(180)
-	menu_index = 0
-	main_menu_index = 1
 
 	# still menu setup
 	still_menu_index = 2
 	still_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	still_menu_draw = ImageDraw.Draw(still_menu_screen)
-	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x000099)
+#	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x000099)
+	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x0000a9)
+#	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x5b58f3)
 	still_menu_draw.text((16,8), " Photo Settings")
 	still_menu_screen = still_menu_screen.rotate(180)
 
@@ -111,17 +91,17 @@ def main(cam):
 	timelapse_menu_index = 3
 	timelapse_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
-	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x009900)
+	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x007000)
 	timelapse_menu_draw.text((5,8), " Timelapse Settings")
-	timelapse_menu_draw.text((12,30), " Interval")
+	timelapse_menu_draw.text((21,30), " Interval %ds" % timelapse_interval)
 	timelapse_menu_screen = timelapse_menu_screen.rotate(180)
 
-	capture_mode = 0
+	current_capture_mode = 0
 	still_capture_index = 0
 	timelapse_capture_index = 1
 	timelapse_capture_flag = False
-	timelapse_interval = 5 #[s]
 	last_timelapse_frame_time = 0
+	last_timelapse_exposures = [] #save exposure times of the last photos taken to smooth out exposure
 
 	# reassign draw objects to menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
@@ -131,39 +111,40 @@ def main(cam):
 	while True:
 		# show or hide menu
 		if GPIO.input(key1_pin) == 0 and not timelapse_capture_flag:
-			menu_index = main_menu_index if menu_index == 0 else 0
+			current_menu_index = main_menu_index if current_menu_index == 0 else 0
 			time.sleep(button_press_wait_time)
 
-		if menu_index != 0:
+		if current_menu_index != 0:
 			#main menu
-			if menu_index == main_menu_index:
-				active_color, inactive_color = 0x0000ff, 0xffab32
+			if current_menu_index == main_menu_index:
+#				active_color, inactive_color = 0x0000ff, 0xffab32
+				active_color, inactive_color = 0x0000ff, 0xd89552
 #				active_color, inactive_color = 0x00ff00, 0x0000ff
-				main_menu_screen_draw.line((106,56,88,56), fill = active_color if capture_mode == still_capture_index else inactive_color, width=3)
-				main_menu_screen_draw.line((46,83,82,83), fill = active_color if capture_mode == timelapse_capture_index else inactive_color, width=3)
+				main_menu_screen_draw.line((106,56,88,56), fill = active_color if current_capture_mode == still_capture_index else inactive_color, width=3)
+				main_menu_screen_draw.line((46,83,82,83), fill = active_color if current_capture_mode == timelapse_capture_index else inactive_color, width=3)
 				disp.LCD_ShowImage(main_menu_screen, 0, 0)
 
 				if GPIO.input(up_pin) == 0:
-					capture_mode = timelapse_capture_index
-					menu_index = timelapse_menu_index
+					current_capture_mode = timelapse_capture_index
+					current_menu_index = timelapse_menu_index
 					time.sleep(button_press_wait_time)
 				elif GPIO.input(left_pin) == 0:
-					capture_mode = still_capture_index
-					menu_index = still_menu_index
+					current_capture_mode = still_capture_index
+					current_menu_index = still_menu_index
 					time.sleep(button_press_wait_time)
 
 			#still photo menu
-			elif menu_index == still_menu_index:
+			elif current_menu_index == still_menu_index:
 				disp.LCD_ShowImage(still_menu_screen, 0, 0)
 				if GPIO.input(press_pin) == 0:
-					menu_index = 0
+					current_menu_index = 0
 					time.sleep(button_press_wait_time)
 
 			#timelapse menu
-			elif menu_index == timelapse_menu_index:
+			elif current_menu_index == timelapse_menu_index:
 				disp.LCD_ShowImage(timelapse_menu_screen, 0, 0)
 				if GPIO.input(press_pin) == 0:
-					menu_index = 0
+					current_menu_index = 0
 					time.sleep(button_press_wait_time)
 
 			time.sleep(0.1)
@@ -179,13 +160,18 @@ def main(cam):
 			time.sleep(button_press_wait_time)
 
 		# capture timelapse
-		if GPIO.input(press_pin) == 0 and capture_mode == timelapse_capture_index:
+		if GPIO.input(press_pin) == 0 and current_capture_mode == timelapse_capture_index:
 			timelapse_capture_flag = not timelapse_capture_flag
 			time.sleep(button_press_wait_time)
 		if timelapse_capture_flag:
-#			print(time.time(), last_timelapse_frame_time + timelapse_interval)
 			if time.time() > (last_timelapse_frame_time + timelapse_interval):
 				GPIO.output(backlight_pin, 0)
+				if len(last_timelapse_exposures) < 5:
+					last_timelapse_exposures += [cam.exposure_speed]
+				else:
+					last_timelapse_exposures = last_timelapse_exposures[0:4]+[cam.exposure_speed]
+					avg_exposure = int(round((last_timelapse_exposures[0]+last_timelapse_exposures[1]+last_timelapse_exposures[2]+last_timelapse_exposures[3]+last_timelapse_exposures[4])/5, 0))
+					cam.shutter_speed = avg_exposure
 				cam.zoom = (0,0,1,1)
 				cam.rotation = 0
 				cam.resolution = capture_resolution
@@ -193,10 +179,11 @@ def main(cam):
 				last_timelapse_frame_time = time.time()
 				cam.resolution = preview_resolution
 				cam.rotation = 180
+				cam.shutter_speed = 0 #0: automatic mode
 				GPIO.output(backlight_pin, 1)
 
 		# capture still image
-		if GPIO.input(press_pin) == 0 and capture_mode == still_capture_index:
+		if GPIO.input(press_pin) == 0 and current_capture_mode == still_capture_index:
 			GPIO.output(backlight_pin, 0) #blank backlight to show image was taken
 			# set camera to capture settings
 			cam.zoom = (0,0,1,1)
@@ -208,7 +195,7 @@ def main(cam):
 			cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), use_video_port=False )
 			disp.LCD_ShowImage(capture_success_screen, 0, 0)
 			# reset camera settings to preview
-			cam.shutter_speed = 0 #automatic mode
+			cam.shutter_speed = 0 #0: automatic mode
 			cam.resolution = preview_resolution
 			cam.rotation = 180
 			GPIO.output(backlight_pin, 1)
@@ -219,41 +206,75 @@ def main(cam):
 		data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
 		cam.capture(data, "rgb", use_video_port=True)
 		preview = Image.fromarray(data, "RGB")
-		#draw magnifying glass symbol to overlay
 		if magnify_flag:
+			#draw magnifying glass symbol to overlay
 			ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
 			ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
 		#add current camera info to preview
 		ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 		dg = cam.digital_gain.numerator / cam.digital_gain.denominator
 		s = str(int(1000000/cam.exposure_speed)) if cam.exposure_speed < max_shutter_time else str(int(1000000/max_shutter_time))
-#		ov_draw.text( (54,3), "pro", fill=0xffffff )
-		ov_draw.text( (3,10), "ag "+str(round(ag,1)), fill=0xffffff )
-		ov_draw.text( (3,20), "dg "+str(round(dg,1)), fill=0xffffff )
-		ov_draw.text( (3,30), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
-		ov_draw.text( (3,40), "s 1/"+s, fill=0xffffff )
-		ov_draw.text( (3,50), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
-		if capture_mode == still_capture_index:
+
+		ov_draw.text( (3,18), "ag "+str(round(ag,1)), fill=0xffffff )
+		ov_draw.text( (3,28), "dg "+str(round(dg,1)), fill=0xffffff )
+		ov_draw.text( (3,38), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
+		ov_draw.text( (3,48), "s 1/"+s, fill=0xffffff )
+		ov_draw.text( (3,58), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
+		if current_capture_mode == still_capture_index:
+			ov_draw.text( (1,1), " Photo", fill=0xffffff )
 			ov_draw.text( (0,0), " Photo", fill=0xffffff )
-		elif capture_mode == timelapse_capture_index:
+		elif current_capture_mode == timelapse_capture_index:
+			ov_draw.text( (1,1), " Timelapse", fill=0xffffff )
 			ov_draw.text( (0,0), " Timelapse", fill=0xffffff )
 			if timelapse_capture_flag:
 				ov_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
+				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
 		#check if internet connection is available and displey the cameras ip address
-		ov_draw.text( (26,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
+		ov_draw.text( (27,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
 		overlay = overlay.rotate(180)
-		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
+		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,240,0)), (0,0), overlay)
+#		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
+# program start
 if __name__ == "__main__":
 	try:
+		# GPIO init
+		GPIO.setmode(GPIO.BCM)
+		GPIO.setwarnings(False)
+		GPIO.setup(key3_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(key2_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(key1_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(up_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(down_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(left_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(right_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(press_pin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(backlight_pin, GPIO.OUT, initial=1)
+
 		cam = picamera.PiCamera(framerate=24)
-		main(cam)
+
+		# display with hardware SPI setup
+		disp = LCD_1in44.LCD()
+		Lcd_ScanDir = LCD_1in44.SCAN_DIR_DFT
+		disp.LCD_Init(Lcd_ScanDir)
+		disp.LCD_Clear()
+
+		# startup image creation and display
+		startup_screen = Image.new("RGB", (ui_width,ui_height))
+		startup_screen_draw = ImageDraw.Draw(startup_screen)
+		startup_screen_draw.rectangle( (50,50,ui_width-50,ui_height-50), fill=0x00ff00)
+		disp.LCD_ShowImage(startup_screen, 0, 0)
+
+		main(cam, disp)
+
 	finally:
 		cam.close()
 		print("\nClosed camera")
 		GPIO.output(backlight_pin, 0)
 		print("Disabled backlight")
+		disp.LCD_Clear()
+		print("Cleared display")
 		GPIO.cleanup()
 		print("GPIO cleanup")
 		print("\nPro Capture closed")
