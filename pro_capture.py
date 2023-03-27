@@ -41,17 +41,14 @@ def main(cam, disp):
 	# camera parameters initialisation
 	max_shutter_time = 20000 #1/50 seconds = 20000µs
 	capture_resolution = (4056,3040)
-#	capture_resolution = (4032,3040)
 	preview_resolution = (ui_width,ui_height)
 	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
 	magnify_flag = False
-	timelapse_interval = 6 #[s]
-
 	button_press_wait_time = 0.2
 
 	# camera setup
 	cam.resolution = preview_resolution
-	cam.rotation = 180 #rotation for preview only
+	cam.rotation = 180 #rotation for preview
 
 	# capture success screen setup
 	capture_success_screen = Image.new("RGB", (ui_width,ui_height))
@@ -65,7 +62,6 @@ def main(cam, disp):
 	main_menu_index = 1
 	main_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
-#	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xffab32)
 	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill= 0xd89552)
 	#arrows
 	main_menu_screen_draw.polygon( (59,58,69,58,64,53), fill=0x000000)
@@ -81,20 +77,19 @@ def main(cam, disp):
 	still_menu_index = 2
 	still_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	still_menu_draw = ImageDraw.Draw(still_menu_screen)
-#	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x000099)
 	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x0000a9)
-#	still_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x5b58f3)
 	still_menu_draw.text((16,8), " Photo Settings")
 	still_menu_screen = still_menu_screen.rotate(180)
 
 	# timelapse menu setup
 	timelapse_menu_index = 3
+	interval_options = [2,4,6,10] #[s]
+	timelapse_interval_index = 1
 	timelapse_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
 	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x007000)
 	timelapse_menu_draw.text((5,8), " Timelapse Settings")
-	timelapse_menu_draw.text((21,30), " Interval %ds" % timelapse_interval)
-	timelapse_menu_screen = timelapse_menu_screen.rotate(180)
+	timelapse_menu_draw.text((21,30), " Interval")
 
 	current_capture_mode = 0
 	still_capture_index = 0
@@ -105,10 +100,13 @@ def main(cam, disp):
 
 	# reassign draw objects to menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
-	still_menu_draw = ImageDraw.Draw(still_menu_screen)
+#	still_menu_draw = ImageDraw.Draw(still_menu_screen)
+	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
 
 	# main loop
 	while True:
+		timelapse_interval = interval_options[timelapse_interval_index]
+
 		# show or hide menu
 		if GPIO.input(key1_pin) == 0 and not timelapse_capture_flag:
 			current_menu_index = main_menu_index if current_menu_index == 0 else 0
@@ -135,17 +133,30 @@ def main(cam, disp):
 
 			#still photo menu
 			elif current_menu_index == still_menu_index:
-				disp.LCD_ShowImage(still_menu_screen, 0, 0)
 				if GPIO.input(press_pin) == 0:
 					current_menu_index = 0
 					time.sleep(button_press_wait_time)
+				disp.LCD_ShowImage(still_menu_screen, 0, 0)
 
 			#timelapse menu
 			elif current_menu_index == timelapse_menu_index:
-				disp.LCD_ShowImage(timelapse_menu_screen, 0, 0)
 				if GPIO.input(press_pin) == 0:
 					current_menu_index = 0
 					time.sleep(button_press_wait_time)
+				if GPIO.input(left_pin) == 0:
+					if timelapse_interval_index <= 0:
+						pass
+					else:
+						timelapse_interval_index -= 1
+				if GPIO.input(right_pin) == 0:
+					if timelapse_interval_index >= len(interval_options)-1:
+						pass
+					else:
+						timelapse_interval_index += 1
+				timelapse_menu_draw.rectangle((83,31,96,39), fill=0x007000)
+				timelapse_menu_draw.text((84,30), text=str(interval_options[timelapse_interval_index]))
+				rotated_screen = timelapse_menu_screen.rotate(180)
+				disp.LCD_ShowImage(rotated_screen, 0, 0)
 
 			time.sleep(0.1)
 			continue #skip image capture and preview while in menu
@@ -166,11 +177,11 @@ def main(cam, disp):
 		if timelapse_capture_flag:
 			if time.time() > (last_timelapse_frame_time + timelapse_interval):
 				GPIO.output(backlight_pin, 0)
-				if len(last_timelapse_exposures) < 5:
+				if len(last_timelapse_exposures) < 10:
 					last_timelapse_exposures += [cam.exposure_speed]
 				else:
-					last_timelapse_exposures = last_timelapse_exposures[0:4]+[cam.exposure_speed]
-					avg_exposure = int(round((last_timelapse_exposures[0]+last_timelapse_exposures[1]+last_timelapse_exposures[2]+last_timelapse_exposures[3]+last_timelapse_exposures[4])/5, 0))
+					last_timelapse_exposures = last_timelapse_exposures[0:9]+[cam.exposure_speed]
+					avg_exposure = int(round((last_timelapse_exposures[0]+last_timelapse_exposures[1]+last_timelapse_exposures[2]+last_timelapse_exposures[3]+last_timelapse_exposures[4]+last_timelapse_exposures[5]+last_timelapse_exposures[6]+last_timelapse_exposures[7]+last_timelapse_exposures[8]+last_timelapse_exposures[9])/10, 0))
 					cam.shutter_speed = avg_exposure
 				cam.zoom = (0,0,1,1)
 				cam.rotation = 0
@@ -202,37 +213,40 @@ def main(cam, disp):
 
 		# update preview
 		overlay = Image.new("L", (ui_width,ui_height))
-		ov_draw = ImageDraw.Draw(overlay)
+		overlay_draw = ImageDraw.Draw(overlay)
 		data = numpy.empty( (preview_resolution[0],preview_resolution[1],3), dtype=numpy.uint8)
 		cam.capture(data, "rgb", use_video_port=True)
 		preview = Image.fromarray(data, "RGB")
 		if magnify_flag:
 			#draw magnifying glass symbol to overlay
-			ov_draw.ellipse( (98,20,108,30), fill=0xffffff )
-			ov_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
+			overlay_draw.ellipse( (98,20,108,30), fill=0xffffff )
+			overlay_draw.line( (103,25,93,35), fill=0xffffff, width=3 )
 		#add current camera info to preview
 		ag = cam.analog_gain.numerator / cam.analog_gain.denominator
 		dg = cam.digital_gain.numerator / cam.digital_gain.denominator
 		s = str(int(1000000/cam.exposure_speed)) if cam.exposure_speed < max_shutter_time else str(int(1000000/max_shutter_time))
 
-		ov_draw.text( (3,18), "ag "+str(round(ag,1)), fill=0xffffff )
-		ov_draw.text( (3,28), "dg "+str(round(dg,1)), fill=0xffffff )
-		ov_draw.text( (3,38), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
-		ov_draw.text( (3,48), "s 1/"+s, fill=0xffffff )
-		ov_draw.text( (3,58), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
+		overlay_draw.text( (3,18), "ag "+str(round(ag,1)), fill=0xffffff )
+		overlay_draw.text( (3,28), "dg "+str(round(dg,1)), fill=0xffffff )
+		overlay_draw.text( (3,38), "e 1/"+str(int(1000000/cam.exposure_speed)), fill=0xffffff )
+		overlay_draw.text( (3,48), "s 1/"+s, fill=0xffffff )
+		overlay_draw.text( (3,58), "i "+(str(cam.iso) if cam.iso != 0 else "auto"), fill=0xffffff )
 		if current_capture_mode == still_capture_index:
-			ov_draw.text( (1,1), " Photo", fill=0xffffff )
-			ov_draw.text( (0,0), " Photo", fill=0xffffff )
+			overlay_draw.text( (1,1), " Photo", fill=0xffffff )
+			overlay_draw.text( (0,0), " Photo", fill=0xffffff )
 		elif current_capture_mode == timelapse_capture_index:
-			ov_draw.text( (1,1), " Timelapse", fill=0xffffff )
-			ov_draw.text( (0,0), " Timelapse", fill=0xffffff )
+			overlay_draw.text( (1,1), " Timelapse", fill=0xffffff )
+			overlay_draw.text( (0,0), " Timelapse", fill=0xffffff )
+			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=0xffffff)
 			if timelapse_capture_flag:
-				ov_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
+				overlay_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
 				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
 		#check if internet connection is available and displey the cameras ip address
-		ov_draw.text( (27,115), text=subprocess.check_output("hostname -I", text=True, shell=True)[:13], fill=0xffffff)
+		connection_status = subprocess.check_output("hostname -I", text=True, shell=True)[:13]
+		overlay_draw.text( (27,115), text= connection_status if connection_status != "" else "no connection", fill=0xffffff)
 		overlay = overlay.rotate(180)
-		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,240,0)), (0,0), overlay)
+#		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,240,0)), (0,0), overlay)
+		preview.paste(ImageOps.colorize(overlay, (0,0,0), (155,155,155)), (0,0), overlay)
 #		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,255,255)), (0,0), overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
