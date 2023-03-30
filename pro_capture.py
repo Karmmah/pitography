@@ -96,7 +96,7 @@ def main(cam, disp):
 	timelapse_capture_index = 1
 	timelapse_capture_flag = False
 	last_timelapse_frame_time = 0
-	last_timelapse_exposures = [] #save exposure times of the last photos taken to smooth out exposure
+	last_timelapse_exposure_times = [] #save exposure times of the last photos taken to smooth out exposure
 
 	# reassign draw objects to menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
@@ -177,11 +177,11 @@ def main(cam, disp):
 		if timelapse_capture_flag:
 			if time.time() > (last_timelapse_frame_time + timelapse_interval):
 				GPIO.output(backlight_pin, 0)
-				if len(last_timelapse_exposures) < 10:
-					last_timelapse_exposures += [cam.exposure_speed]
+				if len(last_timelapse_exposure_times) < 10:
+					last_timelapse_exposure_times += [cam.exposure_speed]
 				else:
-					last_timelapse_exposures = last_timelapse_exposures[0:9]+[cam.exposure_speed]
-					avg_exposure = int(round((last_timelapse_exposures[0]+last_timelapse_exposures[1]+last_timelapse_exposures[2]+last_timelapse_exposures[3]+last_timelapse_exposures[4]+last_timelapse_exposures[5]+last_timelapse_exposures[6]+last_timelapse_exposures[7]+last_timelapse_exposures[8]+last_timelapse_exposures[9])/10, 0))
+					last_timelapse_exposure_times = last_timelapse_exposure_times[0:9]+[cam.exposure_speed]
+					avg_exposure = int(round((last_timelapse_exposure_times[0]+last_timelapse_exposure_times[1]+last_timelapse_exposure_times[2]+last_timelapse_exposure_times[3]+last_timelapse_exposure_times[4]+last_timelapse_exposure_times[5]+last_timelapse_exposure_times[6]+last_timelapse_exposure_times[7]+last_timelapse_exposure_times[8]+last_timelapse_exposure_times[9])/10, 0))
 					cam.shutter_speed = avg_exposure
 				cam.zoom = (0,0,1,1)
 				cam.rotation = 0
