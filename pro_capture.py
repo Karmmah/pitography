@@ -44,7 +44,7 @@ def main(cam, disp):
 	preview_resolution = (ui_width,ui_height)
 	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
 	magnify_flag = False
-	button_press_wait_time = 0.4
+	button_press_wait_time = 0.2
 
 	# camera setup
 	cam.resolution = preview_resolution
@@ -83,13 +83,17 @@ def main(cam, disp):
 
 	# timelapse menu setup
 	timelapse_menu_index = 3
-	interval_options = [2,4,6,10] #[s]
+	timelapse_menu_selected_item = 0
+	timelapse_interval_options = [2,4,6,10] #[s]
 	timelapse_interval_index = 1
+	timelapse_resolution_options = ["half", "full"]
+	timelapse_resolution_index = 0
 	timelapse_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
-	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x007000)
+	timelapse_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x007000) #green background
 	timelapse_menu_draw.text((5,8), " Timelapse Settings")
 	timelapse_menu_draw.text((21,30), " Interval")
+	timelapse_menu_draw.text((9,47), " Resolution")
 
 	current_capture_mode = 0
 	still_capture_index = 0
@@ -107,7 +111,7 @@ def main(cam, disp):
 
 	# main loop
 	while True:
-		timelapse_interval = interval_options[timelapse_interval_index]
+		timelapse_interval = timelapse_interval_options[timelapse_interval_index]
 
 		if GPIO.input(key1_pin) == 0:
 			input_key = 21
@@ -135,7 +139,6 @@ def main(cam, disp):
 		# show or hide menu
 		if input_key == key1_pin and not timelapse_capture_flag:
 			current_menu_index = main_menu_index if current_menu_index == 0 else 0
-#			time.sleep(button_press_wait_time)
 
 		if current_menu_index != 0:
 			#main menu
@@ -150,36 +153,42 @@ def main(cam, disp):
 				if input_key == up_pin:
 					current_capture_mode = timelapse_capture_index
 					current_menu_index = timelapse_menu_index
-#					time.sleep(button_press_wait_time)
 				elif input_key == left_pin:
 					current_capture_mode = still_capture_index
 					current_menu_index = still_menu_index
-#					time.sleep(button_press_wait_time)
 
 			#still photo menu
 			elif current_menu_index == still_menu_index:
 				if input_key == press_pin:
 					current_menu_index = 0
-#					time.sleep(button_press_wait_time)
 				disp.LCD_ShowImage(still_menu_screen, 0, 0)
 
 			#timelapse menu
 			elif current_menu_index == timelapse_menu_index:
 				if input_key == press_pin:
 					current_menu_index = 0
-#					time.sleep(button_press_wait_time)
-				if input_key == left_pin:
+				elif input_key == up_pin:
+					timelapse_menu_selected_item -= 1 if timelapse_menu_selected_item > 0 else 0
+				elif input_key == down_pin:
+					timelapse_menu_selected_item += 1 if timelapse_menu_selected_item < 1 else 0
+				elif input_key == left_pin and timelapse_menu_selected_item == 0:
 					if timelapse_interval_index <= 0:
 						pass
 					else:
 						timelapse_interval_index -= 1
-				if input_key == right_pin:
-					if timelapse_interval_index >= len(interval_options)-1:
+				elif input_key == right_pin and timelapse_menu_selected_item == 0:
+					if timelapse_interval_index >= len(timelapse_interval_options)-1:
 						pass
 					else:
 						timelapse_interval_index += 1
+				elif input_key == left_pin and timelapse_menu_selected_item == 1:
+					timelapse_resolution_index -= 1 if timelapse_resolution_index > 0 else 0
+				elif input_key == right_pin and timelapse_menu_selected_item == 1:
+					timelapse_resolution_index += 1 if timelapse_resolution_index < 1 else 0
 				timelapse_menu_draw.rectangle((83,31,96,39), fill=0x007000)
-				timelapse_menu_draw.text((84,30), text=str(interval_options[timelapse_interval_index]))
+				timelapse_menu_draw.text((84,30), text=str(timelapse_interval_options[timelapse_interval_index]), fill=0x00c7ff if timelapse_menu_selected_item == 0 else 0xffffff)
+				timelapse_menu_draw.rectangle((83,48,106,56), fill=0x007000)
+				timelapse_menu_draw.text((84,47), text=timelapse_resolution_options[timelapse_resolution_index], fill=0x00c7ff if timelapse_menu_selected_item == 1 else 0xffffff)
 				rotated_screen = timelapse_menu_screen.rotate(180)
 				disp.LCD_ShowImage(rotated_screen, 0, 0)
 
@@ -193,12 +202,10 @@ def main(cam, disp):
 				cam.zoom = magnify_zoom
 			else:
 				cam.zoom = (0,0,1,1)
-#			time.sleep(button_press_wait_time)
 
 		# capture timelapse
 		if input_key == press_pin and current_capture_mode == timelapse_capture_index:
 			timelapse_capture_flag = not timelapse_capture_flag
-#			time.sleep(button_press_wait_time)
 		if timelapse_capture_flag:
 			if time.time() > (last_timelapse_frame_time + timelapse_interval):
 				GPIO.output(backlight_pin, 0)
@@ -210,7 +217,7 @@ def main(cam, disp):
 					cam.shutter_speed = avg_exposure
 				cam.zoom = (0,0,1,1)
 				cam.rotation = 0
-				cam.resolution = capture_resolution
+				cam.resolution = capture_resolution if timelapse_resolution_index == 1 else (2028,1520)
 				cam.capture("/home/pi/DCIM/timelapse/%d.jpg" % int(time.time()*1000), use_video_port=False)
 				last_timelapse_frame_time = time.time()
 				cam.resolution = preview_resolution
@@ -269,7 +276,7 @@ def main(cam, disp):
 		#check if internet connection is available and displey the cameras ip address
 		connection_status = subprocess.check_output("hostname -I", text=True, shell=True)[:13]
 		overlay_draw.text( (27,115), text= connection_status if connection_status != "" else "no connection", fill=0xffffff)
-		if time.time() - last_interaction_time > 10:
+		if time.time() - last_interaction_time > 10 and not timelapse_capture_flag:
 			overlay_draw.text( (30,100), text="Power saving", fill=0xffffff)
 			time.sleep(0.5)
 		overlay = overlay.rotate(180)
