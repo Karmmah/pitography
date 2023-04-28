@@ -44,7 +44,7 @@ def main(cam, disp):
 	preview_resolution = (ui_width,ui_height)
 	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
 	magnify_flag = False
-	button_press_wait_time = 0.2
+	button_press_flag = False
 
 	# camera setup
 	cam.resolution = preview_resolution
@@ -112,17 +112,19 @@ def main(cam, disp):
 	last_timelapse_frame_time = 0
 	last_timelapse_exposure_times = [] #save exposure times of the last photos taken to smooth out exposure
 
-	exposure_modes = ['off', 'auto', 'night', 'nightpreview', 'backlight', 'spotlight', 'sports', 'snow', 'beach',
-'verylong', 'fixedfps', 'antishake', 'fireworks']
-	exposure_mode_index = 1 #default: auto
+	exposure_modes = ['off', 'auto', 'night', 'nightpreview', 'backlight', 'spotlight', 'sports', 'snow', 'beach', 'verylong', 'fixedfps', 'antishake', 'fireworks']
+#	exposure_mode_index = 1 #default: auto
+	exposure_mode_index = 6 #default: sports
 
-	# reassign draw objects to menu screens after rotation (otherwise it cannot be drawn to again)
+	# reassign draw objects of menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
 #	still_menu_draw = ImageDraw.Draw(still_menu_screen)
 	timelapse_menu_draw = ImageDraw.Draw(timelapse_menu_screen)
 	settings_menu_draw = ImageDraw.Draw(settings_menu_screen)
 
 	last_interaction_time = time.time()
+	power_saving_flag = False
+	power_saving_counter = 0
 
 	# main loop
 	while True:
@@ -146,10 +148,22 @@ def main(cam, disp):
 			input_key = 13
 		else:
 			input_key = 0
-#		if input_key != 0 and (input_key != press_pin and current_capture_mode == still_capture_index):
-		if input_key != 0:
+			button_press_flag = False
+
+		if input_key != 0 and button_press_flag == False:
 			last_interaction_time = time.time()
-			time.sleep(button_press_wait_time)
+			button_press_flag = True
+			power_saving_flag = False
+		elif button_press_flag == True:
+			input_key = 0
+		elif power_saving_flag and power_saving_counter*0.033 < 0.5:
+			time.sleep(0.033)
+			power_saving_counter += 1
+			continue
+		elif power_saving_flag and power_saving_counter*0.033 > 0.5:
+			power_saving_counter = 0
+		elif input_key == 0 and time.time() - last_interaction_time > 60 and not timelapse_capture_flag:
+			power_saving_flag = True
 
 		# show or hide menu
 		if input_key == key1_pin and not timelapse_capture_flag:
@@ -307,9 +321,8 @@ def main(cam, disp):
 		#check if internet connection is available and displey the cameras ip address
 		connection_status = subprocess.check_output("hostname -I", text=True, shell=True)[:13]
 		overlay_draw.text( (27,115), text= connection_status if connection_status != "" else "no connection", fill=0xffffff)
-		if time.time() - last_interaction_time > 60 and not timelapse_capture_flag:
+		if power_saving_flag:
 			overlay_draw.text( (30,100), text="Power saving", fill=0xffffff)
-			time.sleep(0.5)
 		overlay = overlay.rotate(180)
 #		preview.paste(ImageOps.colorize(overlay, (0,0,0), (255,240,0)), (0,0), overlay)
 		preview.paste(ImageOps.colorize(overlay, (0,0,0), (155,155,155)), (0,0), overlay)
