@@ -130,6 +130,7 @@ def main(cam, disp):
 	while True:
 		timelapse_interval = timelapse_interval_options[timelapse_interval_index]
 
+		# evaluate button input
 		if GPIO.input(key1_pin) == 0:
 			input_key = 21
 		elif GPIO.input(key2_pin) == 0:
@@ -150,17 +151,22 @@ def main(cam, disp):
 			input_key = 0
 			button_press_flag = False
 
-		if input_key != 0 and button_press_flag == False:
+		if input_key != 0:
 			last_interaction_time = time.time()
+
+		if input_key != 0 and button_press_flag == False:
 			button_press_flag = True
 			power_saving_flag = False
 		elif button_press_flag == True:
 			input_key = 0
-		elif power_saving_flag and power_saving_counter*0.033 < 0.5:
+
+		if power_saving_flag and power_saving_counter*0.033 < 0.5:
+			#skip rendering the preview
 			time.sleep(0.033)
 			power_saving_counter += 1
 			continue
 		elif power_saving_flag and power_saving_counter*0.033 > 0.5:
+			#don't skip rendering the preview
 			power_saving_counter = 0
 		elif input_key == 0 and time.time() - last_interaction_time > 60 and not timelapse_capture_flag:
 			power_saving_flag = True
@@ -187,7 +193,8 @@ def main(cam, disp):
 					current_menu_index = still_menu_index
 				elif input_key == down_pin:
 					current_menu_index = settings_menu_index
-#				print("current menu index:", current_menu_index) #debug
+				elif input_key == press_pin:
+					current_menu_index = 0
 
 			#still photo menu
 			elif current_menu_index == still_menu_index:
