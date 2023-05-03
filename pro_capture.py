@@ -64,10 +64,10 @@ def main(cam, disp):
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
 	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill=0xffffff)
 	#arrows
-	main_menu_screen_draw.polygon( (59,58,69,58,64,53), fill=0x000000)
-	main_menu_screen_draw.polygon( (70,59,70,69,75,64), fill=0x000000)
-	main_menu_screen_draw.polygon( (59,70,69,70,64,75), fill=0x000000)
-	main_menu_screen_draw.polygon( (58,59,58,69,53,64), fill=0x000000)
+	main_menu_screen_draw.polygon( (59,58,69,58,64,53), fill=0x000000) #up
+#	main_menu_screen_draw.polygon( (70,59,70,69,75,64), fill=0x000000) #right
+	main_menu_screen_draw.polygon( (59,70,69,70,64,75), fill=0x000000) #down
+	main_menu_screen_draw.polygon( (58,59,58,69,53,64), fill=0x000000) #left
 	#labels
 	main_menu_screen_draw.text((11,58), " Photo", fill=0x000000)
 	main_menu_screen_draw.text((32,30), " Timelapse", fill=0x000000)
@@ -98,11 +98,13 @@ def main(cam, disp):
 
 	# settings menu setup
 	settings_menu_index = 4
+	settings_menu_selected_item = 0
 	settings_menu_screen = Image.new("RGB", (ui_width,ui_height))
 	settings_menu_draw = ImageDraw.Draw(settings_menu_screen)
 	settings_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0xd89552)
 	settings_menu_draw.text((25,8), " Settings")
 	settings_menu_draw.text((4,30), " Exp. Mode")
+	settings_menu_draw.text((4,47), " Shut. Lim.")
 
 	current_capture_mode = 0
 	still_capture_index = 0
@@ -115,6 +117,8 @@ def main(cam, disp):
 	exposure_modes = ['off', 'auto', 'night', 'nightpreview', 'backlight', 'spotlight', 'sports', 'snow', 'beach', 'verylong', 'fixedfps', 'antishake', 'fireworks']
 #	exposure_mode_index = 1 #default: auto
 	exposure_mode_index = 6 #default: sports
+
+	shutter_limit_flag = True #limit shutter speed for sharper photos when handheld
 
 	# reassign draw objects of menu screens after rotation (otherwise it cannot be drawn to again)
 	main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
@@ -190,20 +194,22 @@ def main(cam, disp):
 					current_menu_index = timelapse_menu_index
 				elif input_key == left_pin:
 					current_capture_mode = still_capture_index
-					current_menu_index = still_menu_index
+#					current_menu_index = still_menu_index
+					current_menu_index = 0
 				elif input_key == down_pin:
 					current_menu_index = settings_menu_index
 				elif input_key == press_pin:
 					current_menu_index = 0
 
-			#still photo menu
-			elif current_menu_index == still_menu_index:
-				if input_key == press_pin:
-					current_menu_index = 0
-				disp.LCD_ShowImage(still_menu_screen, 0, 0)
+#			#still photo menu
+#			elif current_menu_index == still_menu_index:
+#				if input_key == press_pin:
+#					current_menu_index = 0
+#				disp.LCD_ShowImage(still_menu_screen, 0, 0)
 
 			#timelapse menu
 			elif current_menu_index == timelapse_menu_index:
+				# evaluate input
 				if input_key == press_pin:
 					current_menu_index = 0
 				elif input_key == up_pin:
@@ -224,22 +230,38 @@ def main(cam, disp):
 					timelapse_resolution_index -= 1 if timelapse_resolution_index > 0 else 0
 				elif input_key == right_pin and timelapse_menu_selected_item == 1:
 					timelapse_resolution_index += 1 if timelapse_resolution_index < 1 else 0
-				timelapse_menu_draw.rectangle((83,31,96,39), fill=0x007000)
+				# update menu screen
+				timelapse_menu_draw.rectangle((83,31,96,39), fill=0x007000) #erase old value
 				timelapse_menu_draw.text((84,30), text=str(timelapse_interval_options[timelapse_interval_index]), fill=0x00c7ff if timelapse_menu_selected_item == 0 else 0xffffff)
 				timelapse_menu_draw.rectangle((83,48,106,56), fill=0x007000)
 				timelapse_menu_draw.text((84,47), text=timelapse_resolution_options[timelapse_resolution_index], fill=0x00c7ff if timelapse_menu_selected_item == 1 else 0xffffff)
 				rotated_screen = timelapse_menu_screen.rotate(180)
 				disp.LCD_ShowImage(rotated_screen, 0, 0)
 
+			#settings menu
 			elif current_menu_index == settings_menu_index:
+				# evaluate input
 				if input_key == press_pin:
 					current_menu_index = 0
-				elif input_key == left_pin and exposure_mode_index > 0:
-					exposure_mode_index -= 1
-				elif input_key == right_pin and exposure_mode_index < 12:
-					exposure_mode_index += 1
-				settings_menu_draw.rectangle((70,31,128,40), fill=0xd89552)
-				settings_menu_draw.text((70,30), text=exposure_modes[exposure_mode_index], fill=0x00c7ff)
+				elif input_key == down_pin:
+					settings_menu_selected_item += 1 if settings_menu_selected_item < 1 else 0
+				elif input_key == up_pin:
+					settings_menu_selected_item -= 1 if settings_menu_selected_item > 0 else 0
+				elif input_key == left_pin and settings_menu_selected_item == 0:
+					exposure_mode_index -= 1 if exposure_mode_index > 0 else 0
+				elif input_key == right_pin and settings_menu_selected_item == 0:
+					exposure_mode_index += 1 if settings_menu_selected_item < 12 else 0
+				elif input_key == left_pin and settings_menu_selected_item == 1:
+					shutter_limit_flag = False
+#					exposure_mode_index -= 1 if exposure_mode_index > 0 else 0
+				elif input_key == right_pin and settings_menu_selected_item == 1:
+					shutter_limit_flag = True
+#					exposure_mode_index += 1 if settings_menu_selected_item < 12 else 0
+				# update menu screen
+				settings_menu_draw.rectangle((70,31,128,40), fill=0xd89552) #erase old value
+				settings_menu_draw.text((70,30), text=exposure_modes[exposure_mode_index], fill=0x00c7ff if settings_menu_selected_item == 0 else 0xffffff)
+				settings_menu_draw.rectangle((70,48,105,56), fill=0xd89552) #erase old value
+				settings_menu_draw.text((70,47), text=" %s" % (shutter_limit_flag), fill=0x00c7ff if settings_menu_selected_item == 1 else 0xffffff)
 				cam.exposure_mode = exposure_modes[exposure_mode_index]
 				rotated_screen = settings_menu_screen.rotate(180)
 				disp.LCD_ShowImage(rotated_screen, 0, 0)
@@ -285,7 +307,7 @@ def main(cam, disp):
 			magnify_flag = False
 			cam.rotation = 0
 			cam.resolution = capture_resolution
-			if cam.exposure_speed > max_shutter_time:
+			if cam.exposure_speed > max_shutter_time and shutter_limit_flag:
 				cam.shutter_speed = max_shutter_time
 			cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), use_video_port=False )
 			disp.LCD_ShowImage(capture_success_screen, 0, 0)
@@ -367,6 +389,9 @@ if __name__ == "__main__":
 		disp.LCD_ShowImage(startup_screen, 0, 0)
 
 		main(cam, disp)
+
+	except Exception as e:
+		print("\nERROR: ", e, "\n") 
 
 	finally:
 		cam.close()
