@@ -44,7 +44,7 @@ def main(cam, disp):
 	preview_resolution = (ui_width,ui_height)
 	magnify_zoom = (0.35, 0.35, 0.3, 0.3)
 	magnify_flag = False
-	button_press_flag = False
+	button_hold_flag = False
 
 	# camera setup
 	cam.resolution = preview_resolution
@@ -65,12 +65,13 @@ def main(cam, disp):
 	main_menu_screen_draw.rectangle( (0,0,ui_width,ui_height), fill=0xffffff)
 	#arrows
 	main_menu_screen_draw.polygon( (59,58,69,58,64,53), fill=0x000000) #up
-#	main_menu_screen_draw.polygon( (70,59,70,69,75,64), fill=0x000000) #right
+	main_menu_screen_draw.polygon( (70,59,70,69,75,64), fill=0x000000) #right
 	main_menu_screen_draw.polygon( (59,70,69,70,64,75), fill=0x000000) #down
 	main_menu_screen_draw.polygon( (58,59,58,69,53,64), fill=0x000000) #left
 	#labels
-	main_menu_screen_draw.text((11,58), " Photo", fill=0x000000)
 	main_menu_screen_draw.text((32,30), " Timelapse", fill=0x000000)
+	main_menu_screen_draw.text((11,58), " Photo", fill=0x000000)
+	main_menu_screen_draw.text((70,58), " Pwr off", fill=0x000000)
 	main_menu_screen_draw.text((32,86), " Settings", fill=0x000000)
 	main_menu_screen = main_menu_screen.rotate(180)
 
@@ -105,6 +106,14 @@ def main(cam, disp):
 	settings_menu_draw.text((25,8), " Settings")
 	settings_menu_draw.text((4,30), " Exp. Mode")
 	settings_menu_draw.text((4,47), " Shut. Lim.")
+
+	# shutdown menu setup
+	shutdown_menu_index = 5
+	shutdown_menu_screen = Image.new("RGB", (ui_width,ui_height))
+	shutdown_menu_draw = ImageDraw.Draw(shutdown_menu_screen)
+	shutdown_menu_draw.rectangle((0,0,ui_width,ui_height), fill=0x000000)
+	shutdown_menu_draw.text((32,60), " Shut down?")
+	shutdown_menu_screen = shutdown_menu_screen.rotate(180)
 
 	current_capture_mode = 0
 	still_capture_index = 0
@@ -153,15 +162,15 @@ def main(cam, disp):
 			input_key = 13
 		else:
 			input_key = 0
-			button_press_flag = False
+			button_hold_flag = False
 
 		if input_key != 0:
 			last_interaction_time = time.time()
 
-		if input_key != 0 and button_press_flag == False:
-			button_press_flag = True
+		if input_key != 0 and button_hold_flag == False:
+			button_hold_flag = True
 			power_saving_flag = False
-		elif button_press_flag == True:
+		elif button_hold_flag == True:
 			input_key = 0
 
 		if power_saving_flag and power_saving_counter*0.033 < 0.5:
@@ -179,6 +188,7 @@ def main(cam, disp):
 		if input_key == key1_pin and not timelapse_capture_flag:
 			current_menu_index = main_menu_index if current_menu_index == 0 else 0
 
+		# inside menu
 		if current_menu_index != 0:
 			#main menu
 			if current_menu_index == main_menu_index:
@@ -196,6 +206,8 @@ def main(cam, disp):
 					current_capture_mode = still_capture_index
 #					current_menu_index = still_menu_index
 					current_menu_index = 0
+				elif input_key == right_pin:
+					current_menu_index = shutdown_menu_index
 				elif input_key == down_pin:
 					current_menu_index = settings_menu_index
 				elif input_key == press_pin:
@@ -265,6 +277,15 @@ def main(cam, disp):
 				cam.exposure_mode = exposure_modes[exposure_mode_index]
 				rotated_screen = settings_menu_screen.rotate(180)
 				disp.LCD_ShowImage(rotated_screen, 0, 0)
+
+			#shutdown menu
+			elif current_menu_index == shutdown_menu_index:
+				disp.LCD_ShowImage(shutdown_menu_screen, 0, 0)
+				if input_key == press_pin:
+#					subprocess.call("halt", shell=False)
+					subprocess.run("sudo shutdown -h now", shell=True, text=True)
+				elif input_key != 0:
+					current_menu_index = main_menu_index
 
 			time.sleep(0.1) #reduced framerate in menu
 			continue #skip image capture and preview while in menu
