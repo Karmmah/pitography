@@ -1,6 +1,8 @@
 # pi_camera
 Building a camera for photography with the Raspberry Pi HQ Camera module.
 
+**The install process is for the python version of the camera script. The c version will follow when the c code is developed far enough.**
+
 The install process is based on the process provided by Waveshare for the 1.44in LCD HAT. https://www.waveshare.com/wiki/1.44inch_LCD_HAT
 
 0. Install RaspberryOS lite 32bit
@@ -41,11 +43,12 @@ mkdir ~/DCIM
 ```
 6. Add Camera and file server service to systemctl
 ```
-cd ~/pi_camera
+cd ~/pitography/python
 sudo cp camera.service /etc/systemd/system/camera.service
 sudo systemctl enable camera
 #file server to access the images taken over the local network via the ip address
-sudo cp camera.service /etc/systemd/system/file_server.service
+cd ..
+sudo cp file_server.service /etc/systemd/system/file_server.service
 sudo systemctl enable file_server
 ```
 7. Increase available GPU memory to enable highest resolution capture
