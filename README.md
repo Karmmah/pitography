@@ -1,9 +1,44 @@
-# pi_camera
+# pitography
 Building a camera for photography with the Raspberry Pi HQ Camera module.
 
-**The install process is for the python version of the camera script. The c version will follow when the c code is developed far enough.**
-
 The install process is based on the process provided by Waveshare for the 1.44in LCD HAT. https://www.waveshare.com/wiki/1.44inch_LCD_HAT
+
+## 64-bit Raspberry-OS, C version **(WORK IN PROGRESS, USE 32-bit Python VERSION BELOW)**
+
+0. Install RaspberryOS lite 64bit
+1. Install BCM2835 libraries
+```
+cd ~
+wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.71.tar.gz
+tar zxvf bcm2835-1.71.tar.gz
+cd bcm2835-1.71/
+sudo ./configure && sudo make && sudo make check && sudo make install
+```
+2. Install WiringPi (todo: test if this is necessary for C)
+```
+git clone https://github.com/WiringPi/WiringPi
+cd WiringPi
+./build
+gpio -v
+```
+3. Create folder to save images to
+```
+mkdir ~/DCIM
+```
+4. Add and enable file server
+```
+# file server to access the images taken over the local network via the ip address
+cd ~/pitography
+sudo cp file_server.service /etc/systemd/system/file_server.service
+sudo systemctl enable file_server
+```
+5. Increase available GPU memory to enable highest resolution capture
+```
+# change value of gpu_mem to 256
+sudo nano /boot/config.txt
+```
+
+## 32-bit Raspberry-OS, Python version
 
 0. Install RaspberryOS lite 32bit
 1. Enable SPI-Interface and Camera Interface on Raspberry Pi, then reboot
