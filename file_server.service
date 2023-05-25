@@ -2,7 +2,7 @@
 Description=DCIM File Server
 
 [Service]
-ExecStart=/bin/sh /home/pi/pi_camera/start_file_server.sh
+ExecStart=/bin/sh /home/pi/pitography/start_file_server.sh
 Restart=on-failure
 RestartSec=15
 
