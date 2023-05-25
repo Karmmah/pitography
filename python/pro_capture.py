@@ -173,12 +173,12 @@ def main(cam, disp):
 		elif button_hold_flag == True:
 			input_key = 0
 
-		if power_saving_flag and power_saving_counter*0.033 < 0.5:
+		if power_saving_flag and power_saving_counter*0.033 < 0.7:
 			#skip rendering the preview
 			time.sleep(0.033)
 			power_saving_counter += 1
 			continue
-		elif power_saving_flag and power_saving_counter*0.033 > 0.5:
+		elif power_saving_flag and power_saving_counter*0.033 > 0.7:
 			#don't skip rendering the preview
 			power_saving_counter = 0
 		elif input_key == 0 and time.time() - last_interaction_time > 60 and not timelapse_capture_flag:
