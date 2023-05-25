@@ -13,10 +13,10 @@
 
 #ifdef USE_BCM2835_LIB
     #include <bcm2835.h>
-#elif USE_WIRINGPI_LIB
+#elif defined(USE_WIRINGPI_LIB)
     #include <wiringPi.h>
     #include <wiringPiSPI.h>
-#elif USE_DEV_LIB
+#elif defined(USE_DEV_LIB)
     #include "sysfs_gpio.h"
     #include "dev_hardware_SPI.h"
 #endif

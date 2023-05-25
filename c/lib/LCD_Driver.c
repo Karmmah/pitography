@@ -8,10 +8,10 @@
 ***********************************************************************************************************************/
 
 #include "LCD_Driver.h"
-#include "DEV_Config.h"
+//#include "DEV_Config.h"
 
-#include <stdlib.h>		//itoa()
-#include <stdio.h>
+//#include <stdlib.h>		//itoa()
+//#include <stdio.h>
 
 LCD_DIS sLCD_DIS;
 

@@ -5,3 +5,5 @@ key_demo.py
 
 __pycache__/
 
+*.out
+
