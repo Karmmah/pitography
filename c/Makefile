@@ -1,2 +1,2 @@
 all:
-	gcc src/main.c -o main.out -lbcm2835 -O3
+	gcc src/main.c -o bin/main.out -lbcm2835 -O3
