@@ -1,6 +1,6 @@
 #!/bin/python3
 
-import picamera2
+import picamera2, libcamera
 import LCD_Config, LCD_1in44
 import RPi.GPIO
 import PIL
@@ -39,21 +39,21 @@ press_pin = 13
 backlight_pin = 24
 
 def check_input():
-	if GPIO.input(key1_pin) == 0:
+	if RPi.GPIO.input(key1_pin) == 0:
 		return 21
-	elif GPIO.input(key2_pin) == 0:
+	elif RPi.GPIO.input(key2_pin) == 0:
 		return 20
-	elif GPIO.input(key3_pin) == 0:
+	elif RPi.GPIO.input(key3_pin) == 0:
 		return 16
-	elif GPIO.input(up_pin) == 0:
+	elif RPi.GPIO.input(up_pin) == 0:
 		return 19
-	elif GPIO.input(down_pin) == 0:
+	elif RPi.GPIO.input(down_pin) == 0:
 		return 6
-	elif GPIO.input(left_pin) == 0:
+	elif RPi.GPIO.input(left_pin) == 0:
 		return 26
-	elif GPIO.input(right_pin) == 0:
+	elif RPi.GPIO.input(right_pin) == 0:
 		return 5
-	elif GPIO.input(press_pin) == 0:
+	elif RPi.GPIO.input(press_pin) == 0:
 		return 13
 	else:
 		return 0
@@ -62,10 +62,40 @@ def main(cam, disp, preview_config, capture_config):
 	main_menu_index = 1
 	current_menu_index = 0
 
+	button_hold_flag = False
+	last_input_time = None
+
 #	while True:
 	for i in range(200): #debug
+		input_key = check_input()
+
+		if button_hold_flag == True:
+			if input_key == 0:
+				button_hold_flag = False
+			else:
+				input_key = 0
+		elif input_key != 0:
+			last_input_time = time.time()
+			button_hold_flag = True
+
+#		print("input key:",input_key,"button hold:",button_hold_flag) #debug
+
 		# show menu
-		pass
+		if input_key == key1_pin and current_menu_index == 0:
+			current_menu_index = main_menu_index
+			continue
+		if current_menu_index == main_menu_index:
+#			if (input_key == key1_pin or input_key == press_pin) and not button_hold_flag:
+			if input_key == key1_pin or input_key == press_pin:
+				current_menu_index = 0
+			elif input_key == right_pin: #exit program
+				print("manual shutdown")
+				return
+			main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen)
+			main_menu_screen_draw.line((20,20,100,100), fill=0x00ff00, width=5)
+			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
+			time.sleep(0.05)
+			continue
 
 		# change magnification
 		pass
@@ -80,11 +110,6 @@ def main(cam, disp, preview_config, capture_config):
 		preview_array = cam.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
 		disp.LCD_ShowImage(preview, 0, 0)
-
-	main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen) #debug
-	main_menu_screen_draw.line((20,20,100,100), fill=0x00ff00, width=5) #debug
-	disp.LCD_ShowImage(screens.main_menu_screen, 0, 0) #debug
-	time.sleep(2) #debug
 
 if __name__ == "__main__":
 	# set up hardware
@@ -111,6 +136,7 @@ if __name__ == "__main__":
 	print("setting up camera")
 	cam = picamera2.Picamera2()
 	preview_config = cam.create_preview_configuration(main={"size":(128,128)})
+	preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
 	capture_config = cam.create_still_configuration()
 	cam.configure(preview_config)
 	cam.start()
