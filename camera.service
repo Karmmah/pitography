@@ -1,5 +1,5 @@
 [Unit]
-Description=Python Camera Utilty
+Description=Camera Utilty
 
 [Service]
 ExecStart=/bin/sh /home/pi/pitography/python/start_camera.sh

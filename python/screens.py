@@ -3,9 +3,9 @@ from PIL import Image, ImageDraw
 import LCD_1in44
 
 # startup screen
-startup_screen = Image.new("RGB", (128,128))
+startup_screen = Image.new("RGB", (LCD_1in44.LCD_WIDTH, LCD_1in44.LCD_HEIGHT))
 startup_screen_draw = ImageDraw.Draw(startup_screen)
-startup_screen_draw.rectangle( (50,50,128-50,128-50), fill=0x00ff00)
+startup_screen_draw.rectangle( (50,50,LCD_1in44.LCD_WIDTH-50,LCD_1in44.LCD_HEIGHT-50), fill=0x00ff00)
 
 # main menu screen
 main_menu_screen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
@@ -19,6 +19,13 @@ main_menu_screen_draw.polygon( (58,59,58,69,53,64), fill=0x000000) #left
 #labels
 main_menu_screen_draw.text((32,30), " Timelapse", fill=0x000000)
 main_menu_screen_draw.text((11,58), " Photo", fill=0x000000)
-main_menu_screen_draw.text((70,58), " Pwr off", fill=0x000000)
+main_menu_screen_draw.text((75,58), " Pwr off", fill=0x000000)
 main_menu_screen_draw.text((32,86), " Settings", fill=0x000000)
 main_menu_screen = main_menu_screen.rotate(180)
+
+# capture success screen
+capture_screen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
+capture_screen_draw = ImageDraw.Draw(capture_screen)
+capture_screen_draw.rectangle( (0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0 )
+capture_screen_draw.text( (17,60), "Capturing Image" )
+capture_screen = capture_screen.rotate(180)

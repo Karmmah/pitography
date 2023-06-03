@@ -58,15 +58,23 @@ def check_input():
 	else:
 		return 0
 
-def main(cam, disp, preview_config, capture_config):
+def main(picam2, disp, preview_config, capture_config):
 	main_menu_index = 1
 	current_menu_index = 0
+
+	still_capture_index = 0
+	timelapse_capture_index = 1
+	current_capture_index = still_capture_index
 
 	button_hold_flag = False
 	last_input_time = None
 
-#	while True:
-	for i in range(200): #debug
+	main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen)
+
+	while True:
+#		with open("/sys/class/thermal/thermal_zone0/temp") as f:
+#			print(f.read(), end="")
+
 		input_key = check_input()
 
 		if button_hold_flag == True:
@@ -77,22 +85,26 @@ def main(cam, disp, preview_config, capture_config):
 		elif input_key != 0:
 			last_input_time = time.time()
 			button_hold_flag = True
-
 #		print("input key:",input_key,"button hold:",button_hold_flag) #debug
 
 		# show menu
-		if input_key == key1_pin and current_menu_index == 0:
+		#main menu
+		if current_menu_index == 0 and input_key == key1_pin:
 			current_menu_index = main_menu_index
 			continue
-		if current_menu_index == main_menu_index:
-#			if (input_key == key1_pin or input_key == press_pin) and not button_hold_flag:
+		elif current_menu_index == main_menu_index:
 			if input_key == key1_pin or input_key == press_pin:
 				current_menu_index = 0
+			if input_key == left_pin:
+				current_capture_index = still_capture_index
+				current_menu_index = 0
+#			elif input_key == up_pin:
+#				current_capture_index = timelapse_capture_index
 			elif input_key == right_pin: #exit program
 				print("manual shutdown")
 				return
-			main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen)
-			main_menu_screen_draw.line((20,20,100,100), fill=0x00ff00, width=5)
+			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_index == still_capture_index else 0xffffff)
+			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_index == timelapse_capture_index else 0xffffff)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
 			time.sleep(0.05)
 			continue
@@ -101,13 +113,29 @@ def main(cam, disp, preview_config, capture_config):
 		pass
 
 		# capture still image
-		pass
+		if input_key == press_pin:
+#			RPi.GPIO.output(backlight_pin, 0)
+
+			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format='jpeg')
+
+#			picam2.stop()
+#			picam2.configure(capture_config)
+#			picam2.start()
+#			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
+#			picam2.stop()
+#			picam2.configure(preview_config)
+#			picam2.start()
+
+#			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
+
+			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
+#			RPi.GPIO.output(backlight_pin, 1)
 
 		# capture timelapse
 		pass
 
 		# show preview
-		preview_array = cam.capture_array()
+		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
 		disp.LCD_ShowImage(preview, 0, 0)
 
@@ -134,21 +162,23 @@ if __name__ == "__main__":
 	disp.LCD_ShowImage(screens.startup_screen, 0, 0)
 
 	print("setting up camera")
-	cam = picamera2.Picamera2()
-	preview_config = cam.create_preview_configuration(main={"size":(128,128)})
+	picam2 = picamera2.Picamera2()
+	preview_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
 	preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
-	capture_config = cam.create_still_configuration()
-	cam.configure(preview_config)
-	cam.start()
+	magnify_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
+	magnify_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
+	capture_config = picam2.create_still_configuration()
+	picam2.configure(preview_config)
+	picam2.start()
 
 	try:
-		main(cam, disp, preview_config, capture_config)
+		main(picam2, disp, preview_config, capture_config)
 	except Exception as e:
 		print(traceback.format_exc())
 
 	print("camera64 is shutting down")
-	cam.stop()
-	cam.close()
+	picam2.stop()
+	picam2.close()
 	disp.LCD_Clear()
 	RPi.GPIO.cleanup()
 
