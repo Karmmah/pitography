@@ -80,8 +80,6 @@ def main(picam2, disp, preview_config, capture_config):
 	i = 0
 	while True:
 		i = i+1 if i < 100 else 0
-#		with open("/sys/class/thermal/thermal_zone0/temp") as f:
-#			print(f.read(), end="")
 
 		input_key = check_input()
 
@@ -129,24 +127,24 @@ def main(picam2, disp, preview_config, capture_config):
 		if input_key == press_pin:
 #			RPi.GPIO.output(backlight_pin, 0)
 			magnify_flag = False
-			try:
-				name = int(time.time()*1000)
-				picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name, format='jpeg')
-				print("captured", name, ".jpg")
+			name = int(time.time()*1000)
 #			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
+#			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name)
+#			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name, format='jpeg')
 
-#			picam2.stop()
-#			picam2.configure(capture_config)
-#			picam2.start()
-#			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
-#			picam2.stop()
-#			picam2.configure(preview_config)
-#			picam2.start()
+			picam2.stop()
+			picam2.configure(capture_config)
+			picam2.start()
+			print("cap start")
+			picam2.capture_file("/home/pi/DCIM/%d.jpg" % name, format="jpeg")
+			print("cap end")
+			picam2.stop()
+			picam2.configure(preview_config)
+			picam2.start()
 
-				disp.LCD_ShowImage(screens.capture_screen, 0, 0)
+			print("captured", name, ".jpg")
+			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
 #			RPi.GPIO.output(backlight_pin, 1)
-			except:
-				print(traceback.format_exc())
 
 		# capture timelapse
 		pass
@@ -171,6 +169,9 @@ def main(picam2, disp, preview_config, capture_config):
 			overlay_draw.text((3,18), "ag "+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
 			overlay_draw.text((3,28), "dg "+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
 			overlay_draw.text((3,38), "e 1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
+			with open("/sys/class/thermal/thermal_zone0/temp") as f:
+				temp = round(int(f.read().rstrip("\n"))/1000,1)
+			overlay_draw.text((3,48), "t "+str(temp), fill=0xffffff)
 			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()
