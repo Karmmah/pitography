@@ -73,7 +73,13 @@ def main(picam2, disp, preview_config, capture_config):
 
 	main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen)
 
+	overlay = PIL.Image.new("L", (LCD_1in44.LCD_WIDTH, LCD_1in44.LCD_HEIGHT))
+	overlay_draw = PIL.ImageDraw.Draw(overlay)
+	rotated_overlay = overlay.rotate(180)
+
+	i = 0
 	while True:
+		i = i+1 if i < 100 else 0
 #		with open("/sys/class/thermal/thermal_zone0/temp") as f:
 #			print(f.read(), end="")
 
@@ -108,7 +114,7 @@ def main(picam2, disp, preview_config, capture_config):
 			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_mode == still_capture_index else 0xffffff)
 			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_mode == timelapse_capture_index else 0xffffff)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
-			time.sleep(0.05)
+			time.sleep(0.05) #reduce framerate in menu
 			continue
 
 		# change magnification
@@ -147,29 +153,29 @@ def main(picam2, disp, preview_config, capture_config):
 
 		# show preview
 		#create overlay
-		overlay = PIL.Image.new("L", (LCD_1in44.LCD_WIDTH, LCD_1in44.LCD_HEIGHT))
-		overlay_draw = PIL.ImageDraw.Draw(overlay)
-		#add capture mode to overlay
-		if current_capture_mode == timelapse_capture_index:
-			overlay_draw.text( (1,1), " Timelapse", fill=0xffffff ) #drop shadow like to make it look nicer
-			overlay_draw.text( (0,0), " Timelapse", fill=0xffffff )
-#			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=0xffffff)
-#			if timelapse_capture_flag:
-#				overlay_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
-#				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
-		else:
-			overlay_draw.text( (1,1), " Photo", fill=0xffffff ) #drop shadow like to make it look nicer
-			overlay_draw.text( (0,0), " Photo", fill=0xffffff )
-		#add capture parameters to overlay
-		metadata = picam2.capture_metadata()
-		overlay_draw.text((3,18), "ag "+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
-		overlay_draw.text((3,28), "dg "+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
-		overlay_draw.text((3,38), "e 1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
+		if i%5 == 0:
+			overlay_draw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0x000000)
+			#add capture mode to overlay
+			if current_capture_mode == timelapse_capture_index:
+				overlay_draw.text( (1,1), " Timelapse", fill=0xffffff ) #drop shadow like to make it look nicer
+				overlay_draw.text( (0,0), " Timelapse", fill=0xffffff )
+	#			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=0xffffff)
+	#			if timelapse_capture_flag:
+	#				overlay_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
+	#				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
+			else:
+				overlay_draw.text( (1,1), " Photo", fill=0xffffff ) #drop shadow like to make it look nicer
+				overlay_draw.text( (0,0), " Photo", fill=0xffffff )
+			#add capture parameters to overlay
+			metadata = picam2.capture_metadata()
+			overlay_draw.text((3,18), "ag "+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
+			overlay_draw.text((3,28), "dg "+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
+			overlay_draw.text((3,38), "e 1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
+			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
-		overlay = overlay.rotate(180)
-		preview.paste(ImageOps.colorize(overlay, (0,0,0), (155,155,155)), (0,0), overlay)
+		preview.paste(ImageOps.colorize(overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
 if __name__ == "__main__":
