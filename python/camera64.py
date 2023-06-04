@@ -4,6 +4,7 @@ import picamera2, libcamera
 import LCD_Config, LCD_1in44
 import RPi.GPIO
 import PIL
+from PIL import ImageOps
 import io
 import traceback
 import time
@@ -64,10 +65,11 @@ def main(picam2, disp, preview_config, capture_config):
 
 	still_capture_index = 0
 	timelapse_capture_index = 1
-	current_capture_index = still_capture_index
+	current_capture_mode = still_capture_index
 
 	button_hold_flag = False
 	last_input_time = None
+	magnify_flag = False
 
 	main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen)
 
@@ -96,27 +98,36 @@ def main(picam2, disp, preview_config, capture_config):
 			if input_key == key1_pin or input_key == press_pin:
 				current_menu_index = 0
 			if input_key == left_pin:
-				current_capture_index = still_capture_index
+				current_capture_mode = still_capture_index
 				current_menu_index = 0
 #			elif input_key == up_pin:
-#				current_capture_index = timelapse_capture_index
+#				current_capture_mode = timelapse_capture_index
 			elif input_key == right_pin: #exit program
 				print("manual shutdown")
 				return
-			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_index == still_capture_index else 0xffffff)
-			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_index == timelapse_capture_index else 0xffffff)
+			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_mode == still_capture_index else 0xffffff)
+			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_mode == timelapse_capture_index else 0xffffff)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
 			time.sleep(0.05)
 			continue
 
 		# change magnification
-		pass
+		if input_key == key3_pin:
+			magnify_flag = not magnify_flag
+			if magnify_flag == True:
+				picam2.set_controls({"ScalerCrop": (1572,1064,912,912)})
+			else:
+				picam2.set_controls({"ScalerCrop": (508,0,3040,3040)})
 
 		# capture still image
 		if input_key == press_pin:
 #			RPi.GPIO.output(backlight_pin, 0)
-
-			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format='jpeg')
+			magnify_flag = False
+			try:
+				name = int(time.time()*1000)
+				picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name, format='jpeg')
+				print("captured", name, ".jpg")
+#			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
 
 #			picam2.stop()
 #			picam2.configure(capture_config)
@@ -126,17 +137,39 @@ def main(picam2, disp, preview_config, capture_config):
 #			picam2.configure(preview_config)
 #			picam2.start()
 
-#			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
-
-			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
+				disp.LCD_ShowImage(screens.capture_screen, 0, 0)
 #			RPi.GPIO.output(backlight_pin, 1)
+			except:
+				print(traceback.format_exc())
 
 		# capture timelapse
 		pass
 
 		# show preview
+		#create overlay
+		overlay = PIL.Image.new("L", (LCD_1in44.LCD_WIDTH, LCD_1in44.LCD_HEIGHT))
+		overlay_draw = PIL.ImageDraw.Draw(overlay)
+		#add capture mode to overlay
+		if current_capture_mode == timelapse_capture_index:
+			overlay_draw.text( (1,1), " Timelapse", fill=0xffffff ) #drop shadow like to make it look nicer
+			overlay_draw.text( (0,0), " Timelapse", fill=0xffffff )
+#			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=0xffffff)
+#			if timelapse_capture_flag:
+#				overlay_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
+#				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
+		else:
+			overlay_draw.text( (1,1), " Photo", fill=0xffffff ) #drop shadow like to make it look nicer
+			overlay_draw.text( (0,0), " Photo", fill=0xffffff )
+		#add capture parameters to overlay
+		metadata = picam2.capture_metadata()
+		overlay_draw.text((3,18), "ag "+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
+		overlay_draw.text((3,28), "dg "+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
+		overlay_draw.text((3,38), "e 1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
+		#get preview from camera
 		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
+		overlay = overlay.rotate(180)
+		preview.paste(ImageOps.colorize(overlay, (0,0,0), (155,155,155)), (0,0), overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
 if __name__ == "__main__":
@@ -165,11 +198,15 @@ if __name__ == "__main__":
 	picam2 = picamera2.Picamera2()
 	preview_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
 	preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
-	magnify_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
-	magnify_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
+#	magnify_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
+#	magnify_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
 	capture_config = picam2.create_still_configuration()
 	picam2.configure(preview_config)
 	picam2.start()
+
+#	print("Camera Controls:",picam2.camera_controls) #debug
+#	print("ScalerCrop:",picam2.camera_controls['ScalerCrop'][2]) #debug
+	print("Capture Metadata:", picam2.capture_metadata()) #['ScalerCrop'][2:]) #debug
 
 	try:
 		main(picam2, disp, preview_config, capture_config)
