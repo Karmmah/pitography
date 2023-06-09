@@ -108,6 +108,7 @@ def main(picam2, disp, preview_config, capture_config):
 #				current_capture_mode = timelapse_capture_index
 			elif input_key == right_pin: #exit program
 				print("manual shutdown")
+				subprocess.run("sudo shutdown -h now", shell=True, text=True)
 				return
 			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_mode == still_capture_index else 0xffffff)
 			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_mode == timelapse_capture_index else 0xffffff)
@@ -128,15 +129,21 @@ def main(picam2, disp, preview_config, capture_config):
 #			RPi.GPIO.output(backlight_pin, 0)
 			magnify_flag = False
 			name = int(time.time()*1000)
-#			picam2.capture_file("/home/pi/DCIM/%d.jpg" % int(time.time()*1000))
 #			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name)
-#			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name, format='jpeg')
 
 			picam2.stop()
 			picam2.configure(capture_config)
-			picam2.start()
-			print("cap start")
-			picam2.capture_file("/home/pi/DCIM/%d.jpg" % name, format="jpeg")
+			error = 1
+			while error > 0:
+				try:
+					picam2.start()
+					print("capture start")
+					picam2.capture_file("/home/pi/DCIM/%d.jpg" % name, format="jpeg")
+					error = 0
+				except:
+					print("error", error)
+					picam2.stop()
+					error += 1
 			print("cap end")
 			picam2.stop()
 			picam2.configure(preview_config)
@@ -216,6 +223,7 @@ if __name__ == "__main__":
 	print("Capture Metadata:", picam2.capture_metadata()) #['ScalerCrop'][2:]) #debug
 
 	try:
+		print("starting main method")
 		main(picam2, disp, preview_config, capture_config)
 	except Exception as e:
 		print(traceback.format_exc())
