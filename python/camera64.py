@@ -173,12 +173,15 @@ def main(picam2, disp, preview_config, capture_config):
 				overlay_draw.text( (0,0), " Photo", fill=0xffffff )
 			#add capture parameters to overlay
 			metadata = picam2.capture_metadata()
-			overlay_draw.text((3,18), "ag "+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
-			overlay_draw.text((3,28), "dg "+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
-			overlay_draw.text((3,38), "e 1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
+			overlay_draw.text((3,27), "prev", fill=0xffffff)
+			overlay_draw.text((3,58), "-", fill=0xffffff)
+			overlay_draw.text((3,87), "menu", fill=0xffffff)
+			overlay_draw.text((90,18), "ag\n"+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
+			overlay_draw.text((90,48), "dg\n"+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
+			overlay_draw.text((90,78), "e\n1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
 			with open("/sys/class/thermal/thermal_zone0/temp") as f:
 				temp = round(int(f.read().rstrip("\n"))/1000,1)
-			overlay_draw.text((3,48), "t "+str(temp), fill=0xffffff)
+			overlay_draw.text((3, 114), "t "+str(temp), fill=0xffffff)
 			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()
