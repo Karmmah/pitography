@@ -68,8 +68,10 @@ def main(picam2, disp, preview_config, capture_config):
 	current_capture_mode = still_capture_index
 
 	button_hold_flag = False
-	last_input_time = None
 	magnify_flag = False
+
+	last_input_time = time.time()
+	energy_saving_flag = False
 
 	main_menu_screen_draw = PIL.ImageDraw.Draw(screens.main_menu_screen)
 
@@ -82,6 +84,14 @@ def main(picam2, disp, preview_config, capture_config):
 		i = i+1 if i < 100 else 0
 
 		input_key = check_input()
+
+		if input_key != 0:
+			last_input_time = time.time()
+		if time.time() - last_input_time > 15:
+			energy_saving_flag = True
+		else:
+			energy_saving_flag = False
+
 
 		if button_hold_flag == True:
 			if input_key == 0:
@@ -130,7 +140,6 @@ def main(picam2, disp, preview_config, capture_config):
 			magnify_flag = False
 			name = int(time.time()*1000)
 #			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name)
-
 			picam2.stop()
 			picam2.configure(capture_config)
 			error = 1
@@ -148,7 +157,6 @@ def main(picam2, disp, preview_config, capture_config):
 			picam2.stop()
 			picam2.configure(preview_config)
 			picam2.start()
-
 			print("captured", name, ".jpg")
 			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
 #			RPi.GPIO.output(backlight_pin, 1)
@@ -158,6 +166,9 @@ def main(picam2, disp, preview_config, capture_config):
 
 		# show preview
 		#create overlay
+		if energy_saving_flag == True and i%5 != 0:
+			time.sleep(0.1)
+			continue
 		if i%5 == 0:
 			overlay_draw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0x000000)
 			#add capture mode to overlay
@@ -186,7 +197,8 @@ def main(picam2, disp, preview_config, capture_config):
 		#get preview from camera
 		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
-		preview.paste(ImageOps.colorize(overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay)
+#		preview.paste(ImageOps.colorize(rotated_overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay)
+		preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (255,255,255)), (0,0), rotated_overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
 if __name__ == "__main__":
