@@ -8,6 +8,7 @@ from PIL import ImageOps
 import io
 import traceback
 import time
+import subprocess
 
 import screens
 
@@ -84,15 +85,15 @@ def main(picam2, disp, preview_config, capture_config):
 		i = i+1 if i < 100 else 0
 
 		input_key = check_input()
-
 		if input_key != 0:
 			last_input_time = time.time()
-		if time.time() - last_input_time > 15:
+
+		if time.time() - last_input_time > 30:
 			energy_saving_flag = True
 		else:
 			energy_saving_flag = False
 
-
+		# check if button is held
 		if button_hold_flag == True:
 			if input_key == 0:
 				button_hold_flag = False
@@ -109,6 +110,14 @@ def main(picam2, disp, preview_config, capture_config):
 			current_menu_index = main_menu_index
 			continue
 		elif current_menu_index == main_menu_index:
+			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_mode == still_capture_index else 0xffffff)
+			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_mode == timelapse_capture_index else 0xffffff)
+			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
+			time.sleep(0.4)
+			input_key = 0
+			while input_key == 0:
+				input_key = check_input()
+				time.sleep(0.033)
 			if input_key == key1_pin or input_key == press_pin:
 				current_menu_index = 0
 			if input_key == left_pin:
@@ -118,12 +127,8 @@ def main(picam2, disp, preview_config, capture_config):
 #				current_capture_mode = timelapse_capture_index
 			elif input_key == right_pin: #exit program
 				print("manual shutdown")
-				subprocess.run("sudo shutdown -h now", shell=True, text=True)
+				subprocess.run("sudo shutdown now", shell=True, text=True)
 				return
-			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_mode == still_capture_index else 0xffffff)
-			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_mode == timelapse_capture_index else 0xffffff)
-			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
-			time.sleep(0.05) #reduce framerate in menu
 			continue
 
 		# change magnification
@@ -160,6 +165,7 @@ def main(picam2, disp, preview_config, capture_config):
 			print("captured", name, ".jpg")
 			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
 #			RPi.GPIO.output(backlight_pin, 1)
+			last_input_time = time.time() #avoid energy saving after capture
 
 		# capture timelapse
 		pass
@@ -193,6 +199,8 @@ def main(picam2, disp, preview_config, capture_config):
 			with open("/sys/class/thermal/thermal_zone0/temp") as f:
 				temp = round(int(f.read().rstrip("\n"))/1000,1)
 			overlay_draw.text((3, 114), "t "+str(temp), fill=0xffffff)
+			connection = subprocess.check_output("hostname -I", shell=True, text=True)[:13]
+			overlay_draw.text((40,114), "|"+connection if connection[3] == "." else "|no connection", fill=0xffffff)
 			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()
