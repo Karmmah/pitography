@@ -200,7 +200,7 @@ def main(picam2, disp, preview_config, capture_config):
 				temp = round(int(f.read().rstrip("\n"))/1000,1)
 			overlay_draw.text((3, 114), "t "+str(temp), fill=0xffffff)
 			connection = subprocess.check_output("hostname -I", shell=True, text=True)[:13]
-			overlay_draw.text((40,114), "|"+connection if connection[3] == "." else "|no connection", fill=0xffffff)
+			overlay_draw.text((40,114), "|"+connection if len(connection) >= 4 and connection[3] == "." else "|no connection", fill=0xffffff)
 			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()
