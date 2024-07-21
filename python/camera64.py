@@ -77,6 +77,8 @@ def main(picam2, disp, preview_config, capture_config):
 	timelapse_capture_flag = False
 	last_timelapse_frame_time = 0
 	last_timelapse_exposure_times = [] #save exposure times of the last photos taken to smooth out exposure
+	timelapse_start_str = "no_timelapse_started"
+	timelapse_frame_nr = 0
 
 	timelapse_interval = 5 #temporary, change when timelapse menu is implemented
 
@@ -159,33 +161,36 @@ def main(picam2, disp, preview_config, capture_config):
 		# capture still image
 		if current_capture_mode == still_capture_index and input_key == press_pin:
 			print("[!] capture start")
-#			RPi.GPIO.output(backlight_pin, 0)
+			#RPi.GPIO.output(backlight_pin, 0)
 			magnify_flag = False
-			name = int(time.time()*1000)
-#			picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % name)
+			image_name = time.strftime("%Y%m%d_%H%M%S")
+			#picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % image_name)
 			picam2.stop()
 			picam2.configure(capture_config)
 			error = 1
 			while error > 0:
 				try:
 					picam2.start()
-					picam2.capture_file("/home/pi/DCIM/%d.jpg" % name, format="jpeg")
+					picam2.capture_file(f'/home/pi/DCIM/{image_name}.jpg', format="jpeg")
 					error = 0
 				except Exception as err:
-					print(f"\t[!] error #{error}:err\n\tretrying")
+					print(f"\t[!] error #{error}:{err}\n\tretrying")
 					picam2.stop()
 					error += 1
 			picam2.stop()
 			picam2.configure(preview_config)
 			picam2.start()
-			print(f"[!] captured {name}.jpg")
+			print(f"[!] captured {image_name}.jpg")
 			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
-#			RPi.GPIO.output(backlight_pin, 1)
+			#RPi.GPIO.output(backlight_pin, 1)
 			last_input_time = time.time() #avoid energy saving after capture
 
 		# capture timelapse
 		if current_capture_mode == timelapse_capture_index and input_key == press_pin:
 			timelapse_capture_flag = not timelapse_capture_flag
+			if timelapse_capture_flag == True:
+				timelapse_start_str = time.strftime("%Y%m%d_%H%M%S")
+				timelapse_frame_nr = 1
 			print(f"[#] DEBUG timelapse capture: timelapse_capture_flag:{timelapse_capture_flag}")
 		if timelapse_capture_flag:
 			if time.time() > (last_timelapse_frame_time + timelapse_interval):
@@ -197,14 +202,19 @@ def main(picam2, disp, preview_config, capture_config):
 				#	avg_exposure = int(round((last_timelapse_exposure_times[0]+last_timelapse_exposure_times[1]+last_timelapse_exposure_times[2]+last_timelapse_exposure_times[3]+last_timelapse_exposure_times[4]+last_timelapse_exposure_times[5]+last_timelapse_exposure_times[6]+last_timelapse_exposure_times[7]+last_timelapse_exposure_times[8]+last_timelapse_exposure_times[9])/10, 0))
 				#	#picam2.shutter_speed = avg_exposure
 				#	picam2.set_controls({"ExposureTime": avg_exposure})
+				frame_nr_str = "%4d" % timelapse_frame_nr
+				frame_nr_str = frame_nr_str.replace(" ", "0")
+				image_name = f"{timelapse_start_str}_{frame_nr_str}"
 				picam2.stop()
 				picam2.configure(capture_config)
 				picam2.start()
-				picam2.capture_file(f"/home/pi/DCIM/timelapse/{int(time.time()*1000)}.jpg")
+				picam2.capture_file(f'/home/pi/DCIM/timelapse/{image_name}.jpg')
+				timelapse_frame_nr += 1
 				last_timelapse_frame_time = time.time()
 				picam2.stop()
 				picam2.configure(preview_config)
 				picam2.start()
+				print(f"[!] captured {image_name}.jpg")
 				RPi.GPIO.output(backlight_pin, 1)
 
 		# show preview
@@ -242,7 +252,7 @@ def main(picam2, disp, preview_config, capture_config):
 		#get preview from camera
 		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
-#		preview.paste(ImageOps.colorize(rotated_overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay)
+		#preview.paste(ImageOps.colorize(rotated_overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay)
 		preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (255,255,255)), (0,0), rotated_overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
