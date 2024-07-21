@@ -18,8 +18,8 @@ main_menu_screen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
 main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
 main_menu_screen_draw.rectangle( (0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0xffffff)
 #arrows
-main_menu_screen_draw.polygon((59,58,69,58,64,53), fill=grey) #up
-main_menu_screen_draw.text((32,30), " Timelapse", fill=grey)
+main_menu_screen_draw.polygon((59,58,69,58,64,53), fill=black) #up
+main_menu_screen_draw.text((32,30), " Timelapse", fill=black)
 main_menu_screen_draw.polygon((70,59,70,69,75,64), fill=black) #right
 main_menu_screen_draw.text((75,58), " Pwr off", fill=black)
 main_menu_screen_draw.polygon((59,70,69,70,64,75), fill=grey) #down

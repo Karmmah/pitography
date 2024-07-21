@@ -18,6 +18,7 @@ gpio -v
 echo Create folder for taken images
 cd ~
 mkdir DCIM
+mkdir DCIM/timelapse
 
 echo Add and enable camera to systemctl
 cd ~/pitography

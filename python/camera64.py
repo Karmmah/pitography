@@ -14,36 +14,36 @@ import screens
 
 #available keys on waveshare 1.44in LCD HAT
 #PIN 	Raspberry Pi Interface (BCM) 	Description
-#KEY1 			P21 		KEY1GPIO
-#KEY2 			P20 		KEY2GPIO
-#KEY3 			P16 		KEY3GPIO
-#Joystick UP 		P6 		Upward direction of the Joystick
-#Joystick Down 		P19 		Downward direction of the Joystick
-#Joystick Left 		P5 		Left direction of the Joystick
-#Joystick Right 	P26 		Right direction of the Joystick
-#Joystick Press 	P13 		Press the Joystick
-#SCLK 			P11/SCLK 	SPI clock line
-#MOSI 			P10/MOS 	SPI data line
-#CS 			P8/CE0 		Chip selection
-#DC 			P25 		Data/Command control
-#RST 			P27 		Reset
-#BL 			P24		Backlight
+#KEY1				P21			KEY1GPIO
+#KEY2				P20			KEY2GPIO
+#KEY3				P16			KEY3GPIO
+#Joystick UP		P6			Upward direction of the Joystick
+#Joystick Down		P19			Downward direction of the Joystick
+#Joystick Left		P5			Left direction of the Joystick
+#Joystick Right		P26			Right direction of the Joystick
+#Joystick Press		P13			Press the Joystick
+#SCLK				P11/SCLK	SPI clock line
+#MOSI				P10/MOS		SPI data line
+#CS					P8/CE0		Chip selection
+#DC					P25			Data/Command control
+#RST				P27			Reset
+#BL					P24			Backlight
 
 # button mapping (mirrored to references given above)
-key1_pin = 21
-key2_pin = 20
-key3_pin = 16
-up_pin = 19
-down_pin = 6
-left_pin = 26
-right_pin = 5
-press_pin = 13
-backlight_pin = 24
+key1_pin		= 21
+key2_pin		= 20
+key3_pin		= 16
+up_pin			= 19
+down_pin		= 6
+left_pin		= 26
+right_pin		= 5
+press_pin		= 13
+backlight_pin	= 24
 
 
-red = 0x0000ff
-white = 0xffffff
-black = 0x000000
+red		= 0x0000ff
+white	= 0xffffff
+black	= 0x000000
 
 
 def check_input():
@@ -72,8 +72,15 @@ def main(picam2, disp, preview_config, capture_config):
 	current_menu_index = 0
 
 	still_capture_index = 0
+
 	timelapse_capture_index = 1
-	current_capture_mode = still_capture_index
+	timelapse_capture_flag = False
+	last_timelapse_frame_time = 0
+	last_timelapse_exposure_times = [] #save exposure times of the last photos taken to smooth out exposure
+
+	timelapse_interval = 5 #temporary, change when timelapse menu is implemented
+
+	current_capture_mode = still_capture_index #default value
 
 	button_hold_flag = False
 	magnify_flag = False
@@ -117,8 +124,8 @@ def main(picam2, disp, preview_config, capture_config):
 			current_menu_index = main_menu_index
 			continue
 		elif current_menu_index == main_menu_index:
-			main_menu_screen_draw.line((106,56,88,56), width=4, fill=red if current_capture_mode == still_capture_index else white)
-			main_menu_screen_draw.line((46,83,82,83), width=4, fill=red if current_capture_mode == timelapse_capture_index else white)
+			main_menu_screen_draw.line((106,56,88,56), width=2, fill=red if current_capture_mode == still_capture_index else white)
+			main_menu_screen_draw.line((46,83,82,83), width=2, fill=red if current_capture_mode == timelapse_capture_index else white)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
 			time.sleep(0.4)
 			input_key = 0
@@ -127,17 +134,18 @@ def main(picam2, disp, preview_config, capture_config):
 				time.sleep(0.033)
 			if input_key == key1_pin or input_key == press_pin:
 				current_menu_index = 0
-			if input_key == left_pin:
+			if input_key == down_pin:
+				continue
+			elif input_key == left_pin:
 				current_capture_mode = still_capture_index
 				current_menu_index = 0
-#			elif input_key == up_pin:
-#				current_capture_mode = timelapse_capture_index
+			elif input_key == up_pin:
+				current_capture_mode = timelapse_capture_index
+				current_menu_index = 0
 			elif input_key == right_pin: #exit program
 				print("manual shutdown")
 				subprocess.run("sudo shutdown now", shell=True, text=True)
 				return
-			elif input_key == down_pin:
-				continue
 			continue
 
 		# change magnification
@@ -149,7 +157,8 @@ def main(picam2, disp, preview_config, capture_config):
 				picam2.set_controls({"ScalerCrop": (508,0,3040,3040)})
 
 		# capture still image
-		if input_key == press_pin:
+		if current_capture_mode == still_capture_index and input_key == press_pin:
+			print("[!] capture start")
 #			RPi.GPIO.output(backlight_pin, 0)
 			magnify_flag = False
 			name = int(time.time()*1000)
@@ -160,24 +169,43 @@ def main(picam2, disp, preview_config, capture_config):
 			while error > 0:
 				try:
 					picam2.start()
-					print("capture start")
 					picam2.capture_file("/home/pi/DCIM/%d.jpg" % name, format="jpeg")
 					error = 0
-				except:
-					print("error", error)
+				except Exception as err:
+					print(f"\t[!] error #{error}:err\n\tretrying")
 					picam2.stop()
 					error += 1
-			print("cap end")
 			picam2.stop()
 			picam2.configure(preview_config)
 			picam2.start()
-			print("captured", name, ".jpg")
+			print(f"[!] captured {name}.jpg")
 			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
 #			RPi.GPIO.output(backlight_pin, 1)
 			last_input_time = time.time() #avoid energy saving after capture
 
 		# capture timelapse
-		pass #not implemented yet
+		if current_capture_mode == timelapse_capture_index and input_key == press_pin:
+			timelapse_capture_flag = not timelapse_capture_flag
+			print(f"[#] DEBUG timelapse capture: timelapse_capture_flag:{timelapse_capture_flag}")
+		if timelapse_capture_flag:
+			if time.time() > (last_timelapse_frame_time + timelapse_interval):
+				RPi.GPIO.output(backlight_pin, 0)
+				#if len(last_timelapse_exposure_times) < 10:
+				#	last_timelapse_exposure_times += [picam2.exposure_speed]
+				#else:
+				#	last_timelapse_exposure_times = last_timelapse_exposure_times[0:9]+[picam2.exposure_speed]
+				#	avg_exposure = int(round((last_timelapse_exposure_times[0]+last_timelapse_exposure_times[1]+last_timelapse_exposure_times[2]+last_timelapse_exposure_times[3]+last_timelapse_exposure_times[4]+last_timelapse_exposure_times[5]+last_timelapse_exposure_times[6]+last_timelapse_exposure_times[7]+last_timelapse_exposure_times[8]+last_timelapse_exposure_times[9])/10, 0))
+				#	#picam2.shutter_speed = avg_exposure
+				#	picam2.set_controls({"ExposureTime": avg_exposure})
+				picam2.stop()
+				picam2.configure(capture_config)
+				picam2.start()
+				picam2.capture_file(f"/home/pi/DCIM/timelapse/{int(time.time()*1000)}.jpg")
+				last_timelapse_frame_time = time.time()
+				picam2.stop()
+				picam2.configure(preview_config)
+				picam2.start()
+				RPi.GPIO.output(backlight_pin, 1)
 
 		# show preview
 		#create overlay
@@ -190,10 +218,10 @@ def main(picam2, disp, preview_config, capture_config):
 			if current_capture_mode == timelapse_capture_index:
 				overlay_draw.text( (1,1), " Timelapse", fill=white ) #drop shadow like to make it look nicer
 				overlay_draw.text( (0,0), " Timelapse", fill=white )
-	#			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=white)
-	#			if timelapse_capture_flag:
-	#				overlay_draw.text( (9,80), "Capturing Timelapse", fill=white )
-	#				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
+				overlay_draw.text( (72,0), f"{timelapse_interval}s", fill=white)
+				if timelapse_capture_flag:
+					overlay_draw.text( (36,14), "capturing", fill=white )
+					time.sleep(0.2) #reduce preview rate to reduce power consumption during timelapse recording
 			else:
 				overlay_draw.text( (1,1), " Photo", fill=white ) #drop shadow like to make it look nicer
 				overlay_draw.text( (0,0), " Photo", fill=white )
@@ -206,10 +234,10 @@ def main(picam2, disp, preview_config, capture_config):
 			overlay_draw.text((90,48), "dg\n"+str(round(metadata["DigitalGain"],1)), fill=white)
 			overlay_draw.text((90,78), "e\n1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=white)
 			with open("/sys/class/thermal/thermal_zone0/temp") as f:
-				temp = round(int(f.read().rstrip("\n"))/1000,1)
-			overlay_draw.text((3, 114), "t "+str(temp), fill=white)
+				temp = int(int(f.read().rstrip("\n"))/1000)
+			overlay_draw.text((3, 114), f"t {str(temp)}", fill=white)
 			connection = subprocess.check_output("hostname -I", shell=True, text=True)[:13]
-			overlay_draw.text((40,114), "|"+connection if len(connection) >= 4 and connection[3] == "." else "|no connection", fill=white)
+			overlay_draw.text((28,114), f'|{connection if len(connection) >= 4 and connection[3] == "." else "no connection"}', fill=white)
 			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()
@@ -218,9 +246,11 @@ def main(picam2, disp, preview_config, capture_config):
 		preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (255,255,255)), (0,0), rotated_overlay)
 		disp.LCD_ShowImage(preview, 0, 0)
 
+
 if __name__ == "__main__":
-	# set up hardware
-	print("setting up GPIO")
+
+	# GPIO setup
+	print("[!] setting up GPIO")
 	RPi.GPIO.setmode(RPi.GPIO.BCM)
 #	RPi.GPIO.setwarnings(False)
 	RPi.GPIO.setup(key3_pin, RPi.GPIO.IN, pull_up_down = RPi.GPIO.PUD_UP)
@@ -233,37 +263,39 @@ if __name__ == "__main__":
 	RPi.GPIO.setup(press_pin, RPi.GPIO.IN, pull_up_down = RPi.GPIO.PUD_UP)
 	RPi.GPIO.setup(backlight_pin, RPi.GPIO.OUT, initial=1)
 
-	print("setting up display")
+	# display setup
+	print("[!] setting up display")
 	disp = LCD_1in44.LCD()
 	Lcd_ScanDir = LCD_1in44.SCAN_DIR_DFT
 	disp.LCD_Init(Lcd_ScanDir)
-#	disp.LCD_Clear()
+	#disp.LCD_Clear()
 	disp.LCD_ShowImage(screens.startup_screen, 0, 0)
 
-	print("setting up camera")
+	# camera setup
+	print("[!] setting up camera")
 	picam2 = picamera2.Picamera2()
+	capture_config = picam2.create_still_configuration()
 	preview_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
 	preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
-#	magnify_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
-#	magnify_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
-	capture_config = picam2.create_still_configuration()
+	#magnify_config = picam2.create_preview_configuration(main={"size":(LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)})
+	#magnify_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
 	picam2.configure(preview_config)
 	picam2.start()
 
-#	print("Camera Controls:",picam2.camera_controls) #debug
-#	print("ScalerCrop:",picam2.camera_controls['ScalerCrop'][2]) #debug
-	print("Capture Metadata:", picam2.capture_metadata()) #['ScalerCrop'][2:]) #debug
+	#print("Camera Controls:",picam2.camera_controls) #debug
+	#print("ScalerCrop:",picam2.camera_controls['ScalerCrop'][2]) #debug
+	print(f"[#] DEBUG Capture Metadata:{picam2.capture_metadata()}") #['ScalerCrop'][2:]) #debug
 
 	try:
-		print("starting main method")
+		print("[!] starting main method")
 		main(picam2, disp, preview_config, capture_config)
 	except Exception as e:
 		print(traceback.format_exc())
 
-	print("camera64 is shutting down")
+	print("[!] camera64 is shutting down")
 	picam2.stop()
 	picam2.close()
 	disp.LCD_Clear()
 	RPi.GPIO.cleanup()
 
-	print("camera64 stopped")
+	print("[!] camera64 stopped")
