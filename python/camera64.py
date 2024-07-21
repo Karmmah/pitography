@@ -40,6 +40,12 @@ right_pin = 5
 press_pin = 13
 backlight_pin = 24
 
+
+red = 0x0000ff
+white = 0xffffff
+black = 0x000000
+
+
 def check_input():
 	if RPi.GPIO.input(key1_pin) == 0:
 		return 21
@@ -59,6 +65,7 @@ def check_input():
 		return 13
 	else:
 		return 0
+
 
 def main(picam2, disp, preview_config, capture_config):
 	main_menu_index = 1
@@ -110,8 +117,8 @@ def main(picam2, disp, preview_config, capture_config):
 			current_menu_index = main_menu_index
 			continue
 		elif current_menu_index == main_menu_index:
-			main_menu_screen_draw.line((106,56,88,56), width=5, fill=0x0000ff if current_capture_mode == still_capture_index else 0xffffff)
-			main_menu_screen_draw.line((46,83,82,83), width=5, fill=0x0000ff if current_capture_mode == timelapse_capture_index else 0xffffff)
+			main_menu_screen_draw.line((106,56,88,56), width=4, fill=red if current_capture_mode == still_capture_index else white)
+			main_menu_screen_draw.line((46,83,82,83), width=4, fill=red if current_capture_mode == timelapse_capture_index else white)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
 			time.sleep(0.4)
 			input_key = 0
@@ -129,6 +136,8 @@ def main(picam2, disp, preview_config, capture_config):
 				print("manual shutdown")
 				subprocess.run("sudo shutdown now", shell=True, text=True)
 				return
+			elif input_key == down_pin:
+				continue
 			continue
 
 		# change magnification
@@ -168,7 +177,7 @@ def main(picam2, disp, preview_config, capture_config):
 			last_input_time = time.time() #avoid energy saving after capture
 
 		# capture timelapse
-		pass
+		pass #not implemented yet
 
 		# show preview
 		#create overlay
@@ -176,31 +185,31 @@ def main(picam2, disp, preview_config, capture_config):
 			time.sleep(0.1)
 			continue
 		if i%5 == 0:
-			overlay_draw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0x000000)
+			overlay_draw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=black)
 			#add capture mode to overlay
 			if current_capture_mode == timelapse_capture_index:
-				overlay_draw.text( (1,1), " Timelapse", fill=0xffffff ) #drop shadow like to make it look nicer
-				overlay_draw.text( (0,0), " Timelapse", fill=0xffffff )
-	#			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=0xffffff)
+				overlay_draw.text( (1,1), " Timelapse", fill=white ) #drop shadow like to make it look nicer
+				overlay_draw.text( (0,0), " Timelapse", fill=white )
+	#			overlay_draw.text( (44,12), " Interval %ds" % timelapse_interval, fill=white)
 	#			if timelapse_capture_flag:
-	#				overlay_draw.text( (9,80), "Capturing Timelapse", fill=0xffffff )
+	#				overlay_draw.text( (9,80), "Capturing Timelapse", fill=white )
 	#				time.sleep(0.5) #reduce preview rate to reduce power consumption during timelapse recording
 			else:
-				overlay_draw.text( (1,1), " Photo", fill=0xffffff ) #drop shadow like to make it look nicer
-				overlay_draw.text( (0,0), " Photo", fill=0xffffff )
+				overlay_draw.text( (1,1), " Photo", fill=white ) #drop shadow like to make it look nicer
+				overlay_draw.text( (0,0), " Photo", fill=white )
 			#add capture parameters to overlay
 			metadata = picam2.capture_metadata()
-			overlay_draw.text((3,27), "prev", fill=0xffffff)
-			overlay_draw.text((3,58), "-", fill=0xffffff)
-			overlay_draw.text((3,87), "menu", fill=0xffffff)
-			overlay_draw.text((90,18), "ag\n"+str(round(metadata["AnalogueGain"],1)), fill=0xffffff)
-			overlay_draw.text((90,48), "dg\n"+str(round(metadata["DigitalGain"],1)), fill=0xffffff)
-			overlay_draw.text((90,78), "e\n1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=0xffffff)
+			overlay_draw.text((3,27), "prev", fill=white)
+			overlay_draw.text((3,58), "-", fill=white)
+			overlay_draw.text((3,87), "menu", fill=white)
+			overlay_draw.text((90,18), "ag\n"+str(round(metadata["AnalogueGain"],1)), fill=white)
+			overlay_draw.text((90,48), "dg\n"+str(round(metadata["DigitalGain"],1)), fill=white)
+			overlay_draw.text((90,78), "e\n1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=white)
 			with open("/sys/class/thermal/thermal_zone0/temp") as f:
 				temp = round(int(f.read().rstrip("\n"))/1000,1)
-			overlay_draw.text((3, 114), "t "+str(temp), fill=0xffffff)
+			overlay_draw.text((3, 114), "t "+str(temp), fill=white)
 			connection = subprocess.check_output("hostname -I", shell=True, text=True)[:13]
-			overlay_draw.text((40,114), "|"+connection if len(connection) >= 4 and connection[3] == "." else "|no connection", fill=0xffffff)
+			overlay_draw.text((40,114), "|"+connection if len(connection) >= 4 and connection[3] == "." else "|no connection", fill=white)
 			rotated_overlay = overlay.rotate(180)
 		#get preview from camera
 		preview_array = picam2.capture_array()

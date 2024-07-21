@@ -1,3 +1,5 @@
+#!/bin/python3
+
 import LCD_1in44
 import LCD_Config
 import RPi.GPIO as GPIO
