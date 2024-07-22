@@ -203,8 +203,7 @@ def main(picam2, disp, preview_config, capture_config):
 				#	avg_exposure = int(round((last_timelapse_exposure_times[0]+last_timelapse_exposure_times[1]+last_timelapse_exposure_times[2]+last_timelapse_exposure_times[3]+last_timelapse_exposure_times[4]+last_timelapse_exposure_times[5]+last_timelapse_exposure_times[6]+last_timelapse_exposure_times[7]+last_timelapse_exposure_times[8]+last_timelapse_exposure_times[9])/10, 0))
 				#	picam2.shutter_speed = avg_exposure
 				#	picam2.set_controls({"ExposureTime": avg_exposure})
-				timelapse_frame_nr_str = "%4d" % timelapse_frame_nr
-				timelapse_frame_nr_str = timelapse_frame_nr_str.replace(" ", "0")
+				timelapse_frame_nr_str = "%04d" % timelapse_frame_nr
 				image_name = f"{timelapse_start_str}_{timelapse_frame_nr_str}"
 				picam2.stop()
 				picam2.configure(capture_config)
