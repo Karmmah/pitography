@@ -1,8 +1,6 @@
 #!/bin/python3
 
 import picamera2, libcamera
-import LCD_Config, LCD_1in44
-import RPi.GPIO
 import PIL
 from PIL import ImageOps
 import io
@@ -10,7 +8,10 @@ import traceback
 import time
 import subprocess
 
+import LCD_Config, LCD_1in44
+import RPi.GPIO
 import screens
+
 
 #available keys on waveshare 1.44in LCD HAT
 #PIN 	Raspberry Pi Interface (BCM) 	Description
@@ -39,7 +40,6 @@ left_pin		= 26
 right_pin		= 5
 press_pin		= 13
 backlight_pin	= 24
-
 
 red		= 0x0000ff
 white	= 0xffffff
@@ -118,7 +118,7 @@ def main(picam2, disp, preview_config, capture_config):
 		elif input_key != 0:
 			last_input_time = time.time()
 			button_hold_flag = True
-#		print("input key:",input_key,"button hold:",button_hold_flag) #debug
+#		print("[!] DEBUG input key:{input_key} button hold:{button_hold_flag}")
 
 		# show menu
 		#main menu
@@ -145,8 +145,9 @@ def main(picam2, disp, preview_config, capture_config):
 				current_capture_mode = timelapse_capture_index
 				current_menu_index = 0
 			elif input_key == right_pin: #exit program
-				print("manual shutdown")
+				print("[!] manual shutdown")
 				subprocess.run("sudo shutdown now", shell=True, text=True)
+				print("[-------shutdown-------]")
 				return
 			continue
 
@@ -200,11 +201,11 @@ def main(picam2, disp, preview_config, capture_config):
 				#else:
 				#	last_timelapse_exposure_times = last_timelapse_exposure_times[0:9]+[picam2.exposure_speed]
 				#	avg_exposure = int(round((last_timelapse_exposure_times[0]+last_timelapse_exposure_times[1]+last_timelapse_exposure_times[2]+last_timelapse_exposure_times[3]+last_timelapse_exposure_times[4]+last_timelapse_exposure_times[5]+last_timelapse_exposure_times[6]+last_timelapse_exposure_times[7]+last_timelapse_exposure_times[8]+last_timelapse_exposure_times[9])/10, 0))
-				#	#picam2.shutter_speed = avg_exposure
+				#	picam2.shutter_speed = avg_exposure
 				#	picam2.set_controls({"ExposureTime": avg_exposure})
-				frame_nr_str = "%4d" % timelapse_frame_nr
-				frame_nr_str = frame_nr_str.replace(" ", "0")
-				image_name = f"{timelapse_start_str}_{frame_nr_str}"
+				timelapse_frame_nr_str = "%4d" % timelapse_frame_nr
+				timelapse_frame_nr_str = timelapse_frame_nr_str.replace(" ", "0")
+				image_name = f"{timelapse_start_str}_{timelapse_frame_nr_str}"
 				picam2.stop()
 				picam2.configure(capture_config)
 				picam2.start()
@@ -224,7 +225,7 @@ def main(picam2, disp, preview_config, capture_config):
 			continue
 		if i%5 == 0:
 			overlay_draw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=black)
-			#add capture mode to overlay
+			# add capture mode to overlay
 			if current_capture_mode == timelapse_capture_index:
 				overlay_draw.text( (1,1), " Timelapse", fill=white ) #drop shadow like to make it look nicer
 				overlay_draw.text( (0,0), " Timelapse", fill=white )
@@ -235,7 +236,7 @@ def main(picam2, disp, preview_config, capture_config):
 			else:
 				overlay_draw.text( (1,1), " Photo", fill=white ) #drop shadow like to make it look nicer
 				overlay_draw.text( (0,0), " Photo", fill=white )
-			#add capture parameters to overlay
+			# add capture parameters to overlay
 			metadata = picam2.capture_metadata()
 			overlay_draw.text((3,27), "prev", fill=white)
 			overlay_draw.text((3,58), "-", fill=white)
@@ -252,8 +253,10 @@ def main(picam2, disp, preview_config, capture_config):
 		#get preview from camera
 		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
-		#preview.paste(ImageOps.colorize(rotated_overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay)
-		preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (255,255,255)), (0,0), rotated_overlay)
+		#preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (255,255,255)), (0,0), rotated_overlay) #white
+		#preview.paste(ImageOps.colorize(rotated_overlay, (255,255,255), (0,0,0)), (0,0), rotated_overlay) #black
+		#preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (204,135,42)), (0,0), rotated_overlay) #orange
+		preview.paste(ImageOps.colorize(rotated_overlay, (0,0,0), (172,117,50)), (0,0), rotated_overlay) #dark orange
 		disp.LCD_ShowImage(preview, 0, 0)
 
 
