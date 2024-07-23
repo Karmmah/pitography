@@ -8,13 +8,13 @@ with open("../README.md", "r", encoding="utf-8") as fh:
 
 
 setup(
-    name = "pitography"
-    author = "Karmmah"
-    description = "photography camera with RaspberryPi and HQ camera module"
-    long_description = long_description
+    name = "pitography",
+    author = "Karmmah",
+    description = "photography camera with RaspberryPi and HQ camera module",
+    long_description = long_description,
     install_requires = [
         "picamera2",
-    ]
+    ],
     entry_points = {
         "console_scripts":[
         ],
