@@ -1,6 +1,9 @@
 # pitography
 Building a camera for photography with the Raspberry Pi HQ Camera module.
 
+![camera front view](https://scontent-dus1-1.cdninstagram.com/v/t51.29350-15/453399245_1478209389503486_1521032123887766358_n.jpg?stp=dst-jpg_e35&efg=eyJ2ZW5jb2RlX3RhZyI6ImltYWdlX3VybGdlbi4xNDQweDE0NDAuc2RyLmYyOTM1MCJ9&_nc_ht=scontent-dus1-1.cdninstagram.com&_nc_cat=102&_nc_ohc=DtYeX1RXf2gQ7kNvgFecldt&edm=AEhyXUkBAAAA&ccb=7-5&ig_cache_key=MzQyMjI2Mjg4MjYyOTk0NDUyMw%3D%3D.2-ccb7-5&oh=00_AYDkW1rzHSnqanL32AY55nY4CdTGhKFF8Q0IHltnoHnjQg&oe=66AD2DA6&_nc_sid=8f1549)
+![camera back view](https://scontent-dus1-1.cdninstagram.com/v/t51.29350-15/453378072_1182047296445009_4853404648570295119_n.jpg?stp=dst-jpg_e35&efg=eyJ2ZW5jb2RlX3RhZyI6ImltYWdlX3VybGdlbi4xNDQweDE0NDAuc2RyLmYyOTM1MCJ9&_nc_ht=scontent-dus1-1.cdninstagram.com&_nc_cat=105&_nc_ohc=qJcY_omyLMgQ7kNvgEgSNft&edm=AEhyXUkBAAAA&ccb=7-5&ig_cache_key=MzQyMjI2Mjg4MjYyOTkyNTM4MQ%3D%3D.2-ccb7-5&oh=00_AYBIEc14RjPIRSr5-c72Z5b7j-2B2hQefGjdK-_PQshobA&oe=66AD1C0F&_nc_sid=8f1549)
+
 The install process is based on the process provided by Waveshare for the 1.44in LCD HAT. https://www.waveshare.com/wiki/1.44inch_LCD_HAT
 
 0. Install RaspberryOS lite 64bit
