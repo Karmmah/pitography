@@ -68,8 +68,7 @@ def check_input():
 
 
 def main(picam2, disp, preview_config, capture_config):
-	main_menu_index = 1
-	current_menu_index = 0
+	currentMenuIndex = 0
 
 	still_capture_index = 0
 
@@ -82,7 +81,7 @@ def main(picam2, disp, preview_config, capture_config):
 
 	timelapse_interval = 5 #temporary, change when timelapse menu is implemented
 
-	current_capture_mode = still_capture_index #default value
+	currentCaptureMode = still_capture_index #default value
 
 	button_hold_flag = False
 	magnify_flag = False
@@ -96,9 +95,9 @@ def main(picam2, disp, preview_config, capture_config):
 	overlay_draw = PIL.ImageDraw.Draw(overlay)
 	rotated_overlay = overlay.rotate(180)
 
-	i = 0
+	counter = 0 #for doing stuff only every nth update cycle
 	while True:
-		i = i+1 if i < 100 else 0
+		counter = counter+1 if counter < 100 else 0
 
 		input_key = check_input()
 		if input_key != 0:
@@ -122,34 +121,41 @@ def main(picam2, disp, preview_config, capture_config):
 
 		# show menu
 		#main menu
-		if current_menu_index == 0 and input_key == key1_pin:
-			current_menu_index = main_menu_index
+		if currentMenuIndex == 0 and input_key == key1_pin:
+			currentMenuIndex = screens.mainMenuIndex
 			continue
-		elif current_menu_index == main_menu_index:
-			main_menu_screen_draw.line((106,56,88,56), width=2, fill=red if current_capture_mode == still_capture_index else white)
-			main_menu_screen_draw.line((46,83,82,83), width=2, fill=red if current_capture_mode == timelapse_capture_index else white)
+
+		elif currentMenuIndex == screens.mainMenuIndex:
+			# draw active capture mode indicator
+			main_menu_screen_draw.line((106,56,88,56), width=2, fill=red if currentCaptureMode == still_capture_index else white)
+			main_menu_screen_draw.line((46,83,82,83), width=2, fill=red if currentCaptureMode == timelapse_capture_index else white)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
-			time.sleep(0.4)
+			time.sleep(0.2) #needed for user experience
+			# wait for input
 			input_key = 0
 			while input_key == 0:
 				input_key = check_input()
-				time.sleep(0.033)
+				time.sleep(0.060)
 			if input_key == key1_pin or input_key == press_pin:
-				current_menu_index = 0
-			if input_key == down_pin:
-				continue
+				currentMenuIndex = 0
+			elif input_key == down_pin:
+				currentMenuIndex = screens.settingsMenuIndex
 			elif input_key == left_pin:
-				current_capture_mode = still_capture_index
-				current_menu_index = 0
+				currentCaptureMode = still_capture_index
+				currentMenuIndex = 0
 			elif input_key == up_pin:
-				current_capture_mode = timelapse_capture_index
-				current_menu_index = 0
+				currentCaptureMode = timelapse_capture_index
+				currentMenuIndex = 0
 			elif input_key == right_pin: #exit program
 				print("[!] manual shutdown")
 				subprocess.run("sudo shutdown now", shell=True, text=True)
 				print("[-------shutdown-------]")
 				return
 			continue
+
+		elif currentMenuIndex == screens.settingsMenuIndex:
+			if input_key == key1_pin:
+				currentMenuIndex = 0
 
 		# change magnification
 		if input_key == key3_pin:
@@ -160,16 +166,15 @@ def main(picam2, disp, preview_config, capture_config):
 				picam2.set_controls({"ScalerCrop": (508,0,3040,3040)})
 
 		# capture still image
-		if current_capture_mode == still_capture_index and input_key == press_pin:
+		if currentCaptureMode == still_capture_index and input_key == press_pin:
 			print("[!] capture start")
 			#RPi.GPIO.output(backlight_pin, 0)
 			magnify_flag = False
 			image_name = time.strftime("%Y%m%d_%H%M%S")
 			#picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % image_name)
-			picam2.stop()
-			picam2.configure(capture_config)
+			picam2.stop(); picam2.configure(capture_config)
 			error = 1
-			while error > 0:
+			while error != 0:
 				try:
 					picam2.start()
 					picam2.capture_file(f'/home/pi/DCIM/{image_name}.jpg', format="jpeg")
@@ -178,21 +183,21 @@ def main(picam2, disp, preview_config, capture_config):
 					print(f"\t[!] error #{error}:{err}\n\tretrying")
 					picam2.stop()
 					error += 1
-			picam2.stop()
-			picam2.configure(preview_config)
-			picam2.start()
+			picam2.stop(); picam2.configure(preview_config); picam2.start()
 			print(f"[!] captured {image_name}.jpg")
 			disp.LCD_ShowImage(screens.capture_screen, 0, 0)
 			#RPi.GPIO.output(backlight_pin, 1)
 			last_input_time = time.time() #avoid energy saving after capture
 
 		# capture timelapse
-		if current_capture_mode == timelapse_capture_index and input_key == press_pin:
+		#switch timelapse capture on/off
+		if currentCaptureMode == timelapse_capture_index and input_key == press_pin: #start or stop timelapse capture
 			timelapse_capture_flag = not timelapse_capture_flag
 			if timelapse_capture_flag == True:
 				timelapse_start_str = time.strftime("%Y%m%d_%H%M%S")
 				timelapse_frame_nr = 1
 			print(f"[#] DEBUG timelapse capture: timelapse_capture_flag:{timelapse_capture_flag}")
+
 		if timelapse_capture_flag:
 			if time.time() > (last_timelapse_frame_time + timelapse_interval):
 				RPi.GPIO.output(backlight_pin, 0)
@@ -205,50 +210,65 @@ def main(picam2, disp, preview_config, capture_config):
 				#	picam2.set_controls({"ExposureTime": avg_exposure})
 				timelapse_frame_nr_str = "%04d" % timelapse_frame_nr
 				image_name = f"{timelapse_start_str}_{timelapse_frame_nr_str}"
-				picam2.stop()
-				picam2.configure(capture_config)
-				picam2.start()
+				picam2.stop(); picam2.configure(capture_config); picam2.start()
 				picam2.capture_file(f'/home/pi/DCIM/timelapse/{image_name}.jpg')
 				timelapse_frame_nr += 1
 				last_timelapse_frame_time = time.time()
-				picam2.stop()
-				picam2.configure(preview_config)
-				picam2.start()
+				picam2.stop(); picam2.configure(preview_config); picam2.start()
 				print(f"[!] captured {image_name}.jpg")
 				RPi.GPIO.output(backlight_pin, 1)
 
 		# show preview
-		#create overlay
-		if energy_saving_flag == True and i%5 != 0:
+		if energy_saving_flag == True and counter % 5 != 0: #update only every nth cycle while in energy save mode
 			time.sleep(0.1)
 			continue
-		if i%5 == 0:
+
+		# populate overlay
+		if counter % 5 == 0: #update preview every nth cycle
 			overlay_draw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=black)
-			# add capture mode to overlay
-			if current_capture_mode == timelapse_capture_index:
+
+			#capture mode
+			if currentCaptureMode == timelapse_capture_index:
 				overlay_draw.text( (1,1), " Timelapse", fill=white ) #drop shadow like to make it look nicer
 				overlay_draw.text( (0,0), " Timelapse", fill=white )
 				overlay_draw.text( (72,0), f"{timelapse_interval}s", fill=white)
 				if timelapse_capture_flag:
 					overlay_draw.text( (36,14), "capturing", fill=white )
 					time.sleep(0.2) #reduce preview rate to reduce power consumption during timelapse recording
-			else:
+			elif currentCaptureMode == still_capture_index:
 				overlay_draw.text( (1,1), " Photo", fill=white ) #drop shadow like to make it look nicer
 				overlay_draw.text( (0,0), " Photo", fill=white )
-			# add capture parameters to overlay
-			metadata = picam2.capture_metadata()
-			overlay_draw.text((3,27), "prev", fill=white)
+			else:
+				None
+
+			#button labels
+			overlay_draw.text((3,27), "magn", fill=white)
 			overlay_draw.text((3,58), "-", fill=white)
 			overlay_draw.text((3,87), "menu", fill=white)
-			overlay_draw.text((90,18), "ag\n"+str(round(metadata["AnalogueGain"],1)), fill=white)
-			overlay_draw.text((90,48), "dg\n"+str(round(metadata["DigitalGain"],1)), fill=white)
-			overlay_draw.text((90,78), "e\n1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=white)
+
+			#capture parameters
+			metadata = picam2.capture_metadata()
+			overlay_draw.text((103,20), " ag\n"+str(round(metadata["AnalogueGain"],1)), fill=white)
+			overlay_draw.text((103,50), " dg\n"+str(round(metadata["DigitalGain"],1)), fill=white)
+			overlay_draw.text((103,80), "  e\n1/"+str(int((metadata["ExposureTime"]/1000000)**(-1))), fill=white)
+
+			#temperature of Raspi
 			with open("/sys/class/thermal/thermal_zone0/temp") as f:
 				temp = int(int(f.read().rstrip("\n"))/1000)
 			overlay_draw.text((3, 114), f"t {str(temp)}", fill=white)
+
+			#ip address
 			connection = subprocess.check_output("hostname -I", shell=True, text=True)[:13]
 			overlay_draw.text((28,114), f'|{connection if len(connection) >= 4 and connection[3] == "." else "no connection"}', fill=white)
+
+			#magnification indicator
+			if magnify_flag == True:
+				overlay_draw.line((43,30,33,40), fill=0xffffff, width=3)
+				overlay_draw.ellipse((38,25,48,35), fill=0xffffff)
+				overlay_draw.ellipse((41,28,45,32), fill=0x000000)
+
 			rotated_overlay = overlay.rotate(180)
+
 		#get preview from camera
 		preview_array = picam2.capture_array()
 		preview = PIL.Image.fromarray(preview_array)
