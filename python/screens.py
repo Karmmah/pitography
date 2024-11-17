@@ -18,20 +18,32 @@ mainMenuIndex = 1
 main_menu_screen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
 main_menu_screen_draw = ImageDraw.Draw(main_menu_screen)
 main_menu_screen_draw.rectangle( (0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0xffffff)
-#arrows
 main_menu_screen_draw.polygon((59,58,69,58,64,53), fill=black) #up
 main_menu_screen_draw.text((32,30), " Timelapse", fill=black)
 main_menu_screen_draw.polygon((70,59,70,69,75,64), fill=black) #right
-main_menu_screen_draw.text((75,58), " Pwr off", fill=black)
-main_menu_screen_draw.polygon((59,70,69,70,64,75), fill=grey) #down
-main_menu_screen_draw.text((32,86), " Settings", fill=grey)
+main_menu_screen_draw.text((80,58), " off", fill=black)
+main_menu_screen_draw.polygon((59,70,69,70,64,75), fill=black) #down
+main_menu_screen_draw.text((35,86), " Settings", fill=black)
 main_menu_screen_draw.polygon((58,59,58,69,53,64), fill=black) #left
-main_menu_screen_draw.text((11,58), " Photo", fill=black)
-#labels
+main_menu_screen_draw.text((10,58), " Photo", fill=black)
 main_menu_screen = main_menu_screen.rotate(180)
 
+# switch off screen
+offScreenIndex = 2
+offScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
+offScreenDraw = ImageDraw.Draw(offScreen)
+offScreenDraw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0x2222ff)
+offScreenDraw.polygon((59,70,69,70,64,75), fill=black) #down
+offScreenDraw.text((39,83), " Camera", fill=black)
+offScreenDraw.text((37,92), " restart", fill=black)
+offScreenDraw.polygon((59,58,69,58,64,53), fill=black) #up
+offScreenDraw.text((40,30), " Pi off", fill=black)
+offScreenDraw.polygon((58,59,58,69,53,64), fill=black) #left
+offScreenDraw.text((14,58), " back", fill=black)
+offScreen = offScreen.rotate(180)
+
 # settings menu screen
-settingsMenuIndex = 2
+settingsMenuIndex = 3
 settings_menu_selected_item = 0
 settingsMenuScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
 settingsMenuDraw = ImageDraw.Draw(settingsMenuScreen)
