@@ -1,5 +1,13 @@
 # pitography
+
 Building a camera for photography with the Raspberry Pi HQ Camera module.
+
+|Front|Back|
+|-|-|
+|![pitography-camera-front](https://github.com/user-attachments/assets/b74ce493-8c40-4bea-bf46-90763f9154eb)|![pitography-camera-back](https://github.com/user-attachments/assets/fa87ee96-b148-4a21-b4c6-99aad77b0f29)|
+
+
+## Install
 
 The install process is based on the process provided by Waveshare for the 1.44in LCD HAT. https://www.waveshare.com/wiki/1.44inch_LCD_HAT
 
