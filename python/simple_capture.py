@@ -89,10 +89,10 @@ def loop(cam):
 			cam.shutter_speed = max_shutter_speed
 
 		# capture the image
-#		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), "yuv" )
-#		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), format=".jpg", bayer=True )
+#		cam.capture( "/home/frank/DCIM/%d.jpg" % int(time.time()*1000), "yuv" )
+#		cam.capture( "/home/frank/DCIM/%d.jpg" % int(time.time()*1000), format=".jpg", bayer=True )
 		start = time.time() #debug
-		cam.capture( "/home/pi/DCIM/%d.jpg" % int(time.time()*1000), use_video_port=False )
+		cam.capture( "/home/frank/DCIM/%d.jpg" % int(time.time()*1000), use_video_port=False )
 		print("image captured:", int(time.time()*1000), " that took", time.time()-start, "seconds") #debug
 
 		# display capture success message
