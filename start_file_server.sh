@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /home/pi/DCIM
+cd /home/frank/DCIM
 
 echo "Starting the image http server"
 sudo python3 -m http.server 80
