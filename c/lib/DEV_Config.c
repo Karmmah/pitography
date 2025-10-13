@@ -117,19 +117,22 @@ Info:
 UBYTE DEV_ModuleInit(void)
 {
  #ifdef USE_BCM2835_LIB
-    if(!bcm2835_init()) {
-        printf("bcm2835 init failed  !!! \r\n");
-        return 1;
-    } else {
-        printf("bcm2835 init success !!! \r\n");
-    }
-    DEV_GPIO_Init();
-    bcm2835_spi_begin();                                         //Start spi interface, set spi pin for the reuse function
-    bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);     //High first transmission
-    bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                  //spi mode 0
-    bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_128);  //Frequency
-    bcm2835_spi_chipSelect(BCM2835_SPI_CS0);                     //set CE0
-    bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, LOW);     //enable cs0
+	if(bcm2835_init() == 0) {
+		printf("bcm2835 init failed  !!! \r\n");
+		return 1;
+	}
+	
+	printf("bcm2835 init success !!! \r\n");
+
+	DEV_GPIO_Init();
+	bcm2835_spi_begin();                                         //Start spi interface, set spi pin for the reuse function
+	bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);     //High first transmission
+	printf("hey\n"); //debug
+	bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                  //spi mode 0
+	printf("hoy\n"); //debug
+	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_128);  //Frequency
+	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);                     //set CE0
+	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, LOW);     //enable cs0
     
 #elif defined(USE_WIRINGPI_LIB)
     //if(wiringPiSetup() < 0)//use wiringpi Pin number table  

@@ -81,9 +81,12 @@ def run(picam2, disp, preview_config, capture_config):
 
 	timelapse_interval = 5 #temporary, change when timelapse menu is implemented
 
+	exposureModes = ['off', 'auto', 'night', 'nightpreview', 'backlight', 'spotlight', 'sports', 'snow', 'beach', 'verylong', 'fixedfps', 'antishake', 'fireworks']
+	exposureModeIndex = 6 #default: sports
+
 	currentCaptureMode = still_capture_index #default value
 
-	button_hold_flag = False
+	buttonHoldFlag = False
 	magnify_flag = False
 
 	last_input_time = time.time()
@@ -109,15 +112,15 @@ def run(picam2, disp, preview_config, capture_config):
 			energySavingFlag = False
 
 		# check if button is held
-		if button_hold_flag == True:
+		if buttonHoldFlag == True:
 			if inputKey == 0:
-				button_hold_flag = False
+				buttonHoldFlag = False
 			else:
 				inputKey = 0
 		elif inputKey != 0:
 			last_input_time = time.time()
-			button_hold_flag = True
-#		print("[!] DEBUG input key:{inputKey} button hold:{button_hold_flag}")
+			buttonHoldFlag = True
+#		print("[!] DEBUG input key:{inputKey} button hold:{buttonHoldFlag}")
 
 		# show menu
 		if currentMenuIndex == 0 and inputKey == key1_pin:
@@ -130,15 +133,12 @@ def run(picam2, disp, preview_config, capture_config):
 			main_menu_screen_draw.line((106,56,88,56), width=2, fill=red if currentCaptureMode == still_capture_index else white)
 			main_menu_screen_draw.line((46,83,82,83), width=2, fill=red if currentCaptureMode == timelapse_capture_index else white)
 			disp.LCD_ShowImage(screens.main_menu_screen, 0, 0)
-			inputKey = 0
-			while inputKey == 0:
-				inputKey = check_input()
-				time.sleep(0.1)
-			#if inputKey == key1_pin or inputKey == press_pin:
+			#inputKey = 0
+			while inputKey == 0: inputKey = check_input(); time.sleep(0.1);
 			if inputKey in [press_pin, key2_pin, key3_pin]:
-				currentMenuIndex = 0; continue
+				currentMenuIndex = 0; time.sleep(0.2); continue
 			elif inputKey == down_pin:
-				currentMenuIndex = screens.settingsMenuIndex
+				currentMenuIndex = screens.settingsMenuIndex; continue
 			elif inputKey == left_pin:
 				currentCaptureMode = still_capture_index
 				currentMenuIndex = 0; continue
@@ -154,26 +154,8 @@ def run(picam2, disp, preview_config, capture_config):
 		#off menu
 		elif currentMenuIndex == screens.offScreenIndex:
 			disp.LCD_ShowImage(screens.offScreen, 0, 0)
-			while inputKey == 0:
-				inputKey = check_input()
-				time.sleep(0.1)
-			if inputKey == left_pin:
-				currentMenuIndex = screens.mainMenuIndex
-			elif inputKey == up_pin:
-				print("[!] shutdown")
-				subprocess.run("sudo shutdown now", shell=True, text=True)
-				print("[-------shutdown-------]")
-				return
-			elif inputKey == down_pin:
-				print("[!] exit camera")
-				return
-			else:
-				time.sleep(0.2)
-				continue
-
-		#off menu
-		elif currentMenuIndex == screens.offScreenIndex:
-			disp.LCD_ShowImage(screens.offScreen, 0, 0)
+			#inputKey = 0
+			while inputKey == 0: inputKey = check_input(); time.sleep(0.1);
 			if inputKey == left_pin:
 				currentMenuIndex = screens.mainMenuIndex
 			elif inputKey == up_pin:
@@ -190,32 +172,31 @@ def run(picam2, disp, preview_config, capture_config):
 
 		#settings menu
 		elif currentMenuIndex == screens.settingsMenuIndex:
-			if inputKey == press_pin:
-				#cam.exposure_mode = exposure_modes[exposure_mode_index]
+			inputKey = 0
+			while inputKey == 0: inputKey = check_input(); time.sleep(0.1); #TODO change loop so that settings menu part is not exited before settings menu is exited
+			if inputKey == press_pin: #exit menu
 				currentMenuIndex = 0
-			elif inputKey == key1_pin:
-				#cam.exposure_mode = exposure_modes[exposure_mode_index]
+			elif inputKey == key1_pin: #return to menu
 				currentMenuIndex = 1
 			elif inputKey == down_pin:
 				settingsMenuSelectedItem += 1 if settingsMenuSelectedItem < 1 else 0
 			elif inputKey == up_pin:
 				settingsMenuSelectedItem -= 1 if settingsMenuSelectedItem > 0 else 0
 			elif inputKey == left_pin and settingsMenuSelectedItem == 0:
-				exposure_mode_index -= 1 if exposure_mode_index > 0 else 0
+				exposureModeIndex -= 1 if exposureModeIndex > 0 else 0
+				picam2.exposure_mode = exposureModes[exposureModeIndex]
 			elif inputKey == right_pin and settingsMenuSelectedItem == 0:
-				exposure_mode_index += 1 if settingsMenuSelectedItem < 12 else 0
+				exposureModeIndex += 1 if exposureModeIndex < len(exposureModes)-1 else 0
+				picam2.exposure_mode = exposureModes[exposureModeIndex]
 			elif inputKey == left_pin and settingsMenuSelectedItem == 1:
-				shutter_limit_flag = False
-#				exposure_mode_index -= 1 if exposure_mode_index > 0 else 0
+				shutterLimitFlag = False
 			elif inputKey == right_pin and settingsMenuSelectedItem == 1:
-				shutter_limit_flag = True
-#				exposure_mode_index += 1 if settingsMenuSelectedItem < 12 else 0
+				shutterLimitFlag = True
 			# update menu screen
 			screens.settingsMenuDraw.rectangle((70,31,128,40), fill=0xd89552) #erase old value
-			#screens.settingsMenuDraw.text((70,30), text=exposure_modes[exposure_mode_index], fill=0x00c7ff if settingsMenuSelectedItem == 0 else 0xffffff)
-			screens.settingsMenuDraw.text((70,30), text="exposure_modes", fill=0x00c7ff if settingsMenuSelectedItem == 0 else 0xffffff)
+			screens.settingsMenuDraw.text((70,30), text=exposureModes[exposureModeIndex], fill=0x00c7ff if settingsMenuSelectedItem == 0 else 0xffffff)
 			screens.settingsMenuDraw.rectangle((70,48,105,56), fill=0xd89552) #erase old value
-			#screens.settingsMenuDraw.text((70,47), text=" %s" % (shutter_limit_flag), fill=0x00c7ff if settingsMenuSelectedItem == 1 else 0xffffff)
+			#screens.settingsMenuDraw.text((70,47), text=" %s" % (shutterLimitFlag), fill=0x00c7ff if settingsMenuSelectedItem == 1 else 0xffffff)
 			screens.settingsMenuDraw.text((70,47), text="shutter limit", fill=0x00c7ff if settingsMenuSelectedItem == 1 else 0xffffff)
 
 			settingsMenuScreen = screens.settingsMenuScreen.rotate(180)
@@ -380,8 +361,9 @@ def main():
 	picam2.configure(preview_config)
 	picam2.start()
 
-	#print("Camera Controls:",picam2.camera_controls) #debug
-	print(f"[#] DEBUG Capture Metadata:{picam2.capture_metadata()}") #['ScalerCrop'][2:]) #debug
+	print(f"[#] DEBUG Camera Properties: {picam2.camera_properties}")
+	print(f"[#] DEBUG Camera Controls: {picam2.camera_controls}")
+	print(f"[#] DEBUG Capture Metadata: {picam2.capture_metadata()}")
 
 	try:
 		print("[!] starting run()")

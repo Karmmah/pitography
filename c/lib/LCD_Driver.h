@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 
-#include "/home/pi/hat_test/inc/Fonts/fonts.h"
+//#include "/home/pi/hat_test/inc/Fonts/fonts.h"
+#include "/home/pi/pitography/c/res/Fonts/fonts.h"
 
 #define	COLOR				uint16_t		//The variable type of the color (unsigned short) 
 #define	POINT				uint16_t		//The type of coordinate (unsigned short) 

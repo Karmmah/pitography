@@ -49,8 +49,8 @@ settingsMenuScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT)
 settingsMenuDraw = ImageDraw.Draw(settingsMenuScreen)
 settingsMenuDraw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0xd89552)
 settingsMenuDraw.text((25,8), " Settings")
-settingsMenuDraw.text((4,30), " Exp. Mode")
-settingsMenuDraw.text((4,47), " Shut. Lim.")
+settingsMenuDraw.text((4,30), " ExpoMode")
+settingsMenuDraw.text((4,47), " ShutrLim")
 
 # capture success screen
 capture_screen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
