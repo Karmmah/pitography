@@ -1,4 +1,4 @@
 #!/bin/sh
 
-echo "Starting main.out"
+echo "C-Version: Starting main.out"
 sudo ./bin/main.out
