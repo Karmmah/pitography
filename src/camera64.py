@@ -217,13 +217,13 @@ def run(picam2, disp, preview_config, capture_config):
 			#RPi.GPIO.output(backlight_pin, 0)
 			magnify_flag = False
 			image_name = time.strftime("%Y%m%d_%H%M%S")
-			#picam2.switch_mode_and_capture_file(capture_config, "/home/pi/DCIM/%d.jpg" % image_name)
+			#picam2.switch_mode_and_capture_file(capture_config, "$HOME/DCIM/%d.jpg" % image_name)
 			picam2.stop(); picam2.configure(capture_config)
 			error = 1
 			while error != 0:
 				try:
 					picam2.start()
-					picam2.capture_file(f'/home/pi/DCIM/{image_name}.jpg', format="jpeg")
+					picam2.capture_file(f'$HOME/DCIM/{image_name}.jpg', format="jpeg")
 					error = 0
 				except Exception as err:
 					print(f"\t[!] error #{error}:{err}\n\tretrying")
@@ -257,7 +257,7 @@ def run(picam2, disp, preview_config, capture_config):
 				timelapseFrameNrStr = "%04d" % timelapse_frame_nr
 				image_name = f"{timelapseStartStr}_{timelapseFrameNrStr}"
 				picam2.stop(); picam2.configure(capture_config); picam2.start()
-				picam2.capture_file(f'/home/pi/DCIM/timelapse/{image_name}.jpg')
+				picam2.capture_file(f'$HOME/DCIM/timelapse/{image_name}.jpg')
 				timelapse_frame_nr += 1
 				last_timelapse_frame_time = time.time()
 				picam2.stop(); picam2.configure(preview_config); picam2.start()
