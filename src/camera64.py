@@ -174,6 +174,7 @@ def run(picam2, disp, preview_config, capture_config):
 		elif currentMenuIndex == screens.settingsMenuIndex:
 			inputKey = 0
 			while inputKey == 0: inputKey = check_input(); time.sleep(0.1); #TODO change loop so that settings menu part is not exited before settings menu is exited
+
 			if inputKey == press_pin: #exit menu
 				currentMenuIndex = 0
 			elif inputKey == key1_pin: #return to menu
@@ -192,6 +193,7 @@ def run(picam2, disp, preview_config, capture_config):
 				shutterLimitFlag = False
 			elif inputKey == right_pin and settingsMenuSelectedItem == 1:
 				shutterLimitFlag = True
+
 			# update menu screen
 			screens.settingsMenuDraw.rectangle((70,31,128,40), fill=0xd89552) #erase old value
 			screens.settingsMenuDraw.text((70,30), text=exposureModes[exposureModeIndex], fill=0x00c7ff if settingsMenuSelectedItem == 0 else 0xffffff)
@@ -376,7 +378,7 @@ def main():
 	picam2.close()
 	disp.LCD_Clear()
 	RPi.GPIO.cleanup()
-	print("[-] camera stopped")
+	print("[!] camera stopped")
 
 
 if __name__ == "__main__":

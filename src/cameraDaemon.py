@@ -6,12 +6,15 @@ from importlib import reload
 
 
 def main():
-	while True:
-		camera64.main()
-		print("[!] restarting camera")
-		reload(camera64)
-		reload(camera64.screens)
+    while True:
+        camera64.main()
+
+        print("[!] restarting camera")
+
+        print("[!] reloading modules")
+        reload(camera64)
+        reload(camera64.screens)
 
 
 if __name__ == "__main__":
-	main()
+    main()

@@ -22,13 +22,13 @@ mkdir DCIM/timelapse
 
 echo Add and enable camera to systemctl
 cd ~/pitography
-sudo cp camera.service /etc/systemd/system/
+sudo ln -s src/camera.service /etc/systemd/system/
 sudo systemctl enable camera.service
 
 echo Add and enable file server
 # file server to access the images taken over the local network via the ip address
 cd ~/pitography
-sudo cp file_server.service /etc/systemd/system/file_server.service
+sudo ln -s file_server.service /etc/systemd/system/file_server.service
 sudo systemctl enable file_server
 #cp file_server.service /etc/systemd/system/file_server.service
 #systemctl enable file_server

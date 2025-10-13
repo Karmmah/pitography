@@ -2,7 +2,8 @@
 Description=Camera Utilty
 
 [Service]
-ExecStart=/bin/sh $HOME/pitography/src/start_camera.sh
+WorkingDirectory=/home/pi/pitography/src/
+ExecStart=/bin/sh start_camera.sh
 Restart=on-failure
 RestartSec=3
 
