@@ -8,12 +8,19 @@ GREY = 0x999999
 GREEN = 0x00ff00
 
 
-# startup screen
+# STARTUP SCREEN
 startupScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH, LCD_1in44.LCD_HEIGHT))
 startupScreenDraw = ImageDraw.Draw(startupScreen)
 startupScreenDraw.rectangle( (50,50,LCD_1in44.LCD_WIDTH-50,LCD_1in44.LCD_HEIGHT-50), fill=GREEN)
 
-# main menu screen
+# CAPTURE SUCCESS SCREEN
+captureScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
+captureScreenDraw = ImageDraw.Draw(captureScreen)
+captureScreenDraw.rectangle( (0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0 )
+captureScreenDraw.text( (21,60), "Captured Image" )
+captureScreen = captureScreen.rotate(180)
+
+# MAIN MENU SCREEN
 mainMenuIndex = 1
 mainMenuScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
 mainMenuScreenDraw = ImageDraw.Draw(mainMenuScreen)
@@ -28,7 +35,7 @@ mainMenuScreenDraw.polygon((58,59,58,69,53,64), fill=BLACK) #left
 mainMenuScreenDraw.text((10,58), " Photo", fill=BLACK)
 mainMenuScreen = mainMenuScreen.rotate(180)
 
-# switch off screen
+# SWITCH OFF SCREEN
 offScreenIndex = 2
 offScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
 offScreenDraw = ImageDraw.Draw(offScreen)
@@ -42,19 +49,18 @@ offScreenDraw.polygon((58,59,58,69,53,64), fill=BLACK) #left
 offScreenDraw.text((14,58), " back", fill=BLACK)
 offScreen = offScreen.rotate(180)
 
-# settings menu screen
+# SETTINGS MENU SCREEN
 settingsMenuIndex = 3
 settingsMenuSelectedItem = 0
 settingsMenuScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
 settingsMenuDraw = ImageDraw.Draw(settingsMenuScreen)
 settingsMenuDraw.rectangle((0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0xd89552)
-settingsMenuDraw.text((25,8), " Settings")
+settingsMenuDraw.text((32,8), " Settings")
 settingsMenuDraw.text((4,30), " ExpoMode")
 settingsMenuDraw.text((4,47), " ShutrLim")
 
-# capture success screen
-captureScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT))
-captureScreenDraw = ImageDraw.Draw(captureScreen)
-captureScreenDraw.rectangle( (0,0,LCD_1in44.LCD_WIDTH,LCD_1in44.LCD_HEIGHT), fill=0 )
-captureScreenDraw.text( (21,60), "Captured Image" )
-captureScreen = captureScreen.rotate(180)
+# TIMELAPSE MENU SCREEN
+timelapseMenuIndex = 4
+timelapseMenuScreen = Image.new("RGB", (LCD_1in44.LCD_WIDTH, LCD_1in44.LCD_HEIGHT))
+timelapseMenuDraw = ImageDraw.Draw(timelapseMenuScreen)
+timelapseMenuDraw.text((31,8), " Timelapse")

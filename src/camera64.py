@@ -137,10 +137,10 @@ def run(picam2, disp, previewConfig, captureConfig):
             #inputKey = 0
 
             while inputKey == 0:
-                inputKey = check_input()
                 time.sleep(0.1)
+                inputKey = check_input()
 
-            if inputKey in [PRESS_PIN, KEY2_PIN, KEY3_PIN]:
+            if inputKey in [PRESS_PIN, KEY2_PIN, KEY3_PIN]: # return to camera view
                 currentMenuIndex = 0
                 time.sleep(0.2)
                 continue
@@ -153,8 +153,8 @@ def run(picam2, disp, previewConfig, captureConfig):
                 continue
             elif inputKey == UP_PIN:
                 currentCaptureMode = timelapseCaptureIndex
-                currentMenuIndex = 0
-                continue
+                currentMenuIndex = screens.timelapseMenuIndex
+                #continue
             elif inputKey == RIGHT_PIN:
                 currentMenuIndex = screens.offScreenIndex
             else:
@@ -168,7 +168,8 @@ def run(picam2, disp, previewConfig, captureConfig):
             while inputKey == 0:
                 inputKey = check_input()
                 time.sleep(0.1)
-            if inputKey == LEFT_PIN:
+
+            if inputKey == LEFT_PIN or inputKey == KEY1_PIN:
                 currentMenuIndex = screens.mainMenuIndex
             elif inputKey == DOWN_PIN:
                 print("[!] shutdown")
@@ -186,8 +187,8 @@ def run(picam2, disp, previewConfig, captureConfig):
         elif currentMenuIndex == screens.settingsMenuIndex:
             inputKey = 0
             while inputKey == 0: #TODO change loop so that settings menu part is not exited before settings menu is exited
-                inputKey = check_input()
                 time.sleep(0.1)
+                inputKey = check_input()
 
             if inputKey == PRESS_PIN: #exit menu
                 currentMenuIndex = 0
@@ -218,6 +219,24 @@ def run(picam2, disp, previewConfig, captureConfig):
             settingsMenuScreen = screens.settingsMenuScreen.rotate(180)
             disp.LCD_ShowImage(settingsMenuScreen, 0, 0)
             continue
+
+        elif currentMenuIndex == screens.timelapseMenuIndex:
+            timelapseMenuScreen = screens.timelapseMenuScreen.rotate(180)
+            disp.LCD_ShowImage(timelapseMenuScreen, 0, 0)
+
+            inputKey = 0
+            while inputKey == 0: #TODO change loop so that settings menu part is not exited before settings menu is exited
+                time.sleep(0.1)
+                inputKey = check_input()
+
+            if inputKey == PRESS_PIN:
+                continue
+            elif inputKey == KEY1_PIN:
+                currentMenuIndex = screens.mainMenuIndex
+                continue
+            else:
+                currentMenuIndex = 0
+                continue
 
         # change magnification
         if inputKey == KEY3_PIN:
@@ -258,10 +277,10 @@ def run(picam2, disp, previewConfig, captureConfig):
         #switch timelapse capture on/off
         if currentCaptureMode == timelapseCaptureIndex and inputKey == PRESS_PIN: #start or stop timelapse capture
             timelapseCaptureFlag = not timelapseCaptureFlag
-            if timelapseCaptureFlag == True:
+            if timelapseCaptureFlag == True: #when timelapse is started
                 timelapseStartStr = time.strftime("%Y%m%d_%H%M%S")
                 timelapseFrameNr = 1
-            print(f"[#] DEBUG timelapse capture: timelapseCaptureFlag:{timelapseCaptureFlag}")
+            print(f"[#] timelapse capture: timelapseCaptureFlag:{timelapseCaptureFlag}")
 
         if timelapseCaptureFlag:
             if time.time() > (lastTimelapseFrameTime + timelapseInterval):
@@ -270,7 +289,7 @@ def run(picam2, disp, previewConfig, captureConfig):
                 #    lastTimelapseExposureTimes += [picam2.exposure_speed]
                 #else:
                 #    lastTimelapseExposureTimes = lastTimelapseExposureTimes[0:9]+[picam2.exposure_speed]
-                #    avg_exposure = int(round((lastTimelapseExposureTimes[0]+lastTimelapseExposureTimes[1]+lastTimelapseExposureTimes[2]+lastTimelapseExposureTimes[3]+lastTimelapseExposureTimes[4]+lastTimelapseExposureTimes[5]+lastTimelapseExposureTimes[6]+lastTimelapseExposureTimes[7]+lastTimelapseExposureTimes[8]+lastTimelapseExposureTimes[9])/10, 0))
+                #    avg_exposure = int(round(sum(lastTimelapseExposureTimes)/10, 0))
                 #    picam2.shutter_speed = avg_exposure
                 #    picam2.set_controls({"ExposureTime": avg_exposure})
                 timelapseFrameNrStr = "%04d" % timelapseFrameNr
