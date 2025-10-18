@@ -25,7 +25,7 @@
  # THE SOFTWARE.
  #
 
-import LCD_Config
+from src import LCD_Config
 import RPi.GPIO as GPIO
 import time
 import numpy as np

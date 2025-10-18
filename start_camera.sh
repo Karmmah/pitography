@@ -1,6 +1,7 @@
 #!/bin/sh
 
-cd home/pi/pitography/src
+#cd home/pi/pitography/src
+#cd src/
 
 echo "Starting the Camera"
 #python3 simple_capture.py

@@ -1,7 +1,7 @@
 #!/bin/python3
 
 import RPi.GPIO
-import camera64
+from src import camera64
 from importlib import reload
 
 
